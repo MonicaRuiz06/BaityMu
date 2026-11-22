@@ -1,4 +1,6 @@
-using AutoMapper;
+﻿using AutoMapper;
+using BaityMu.Domain.Entities;
+using BaityMu.Services.Dtos;
 
 namespace BaityMu.Web.Mapping
 {
@@ -15,8 +17,7 @@ namespace BaityMu.Web.Mapping
     /// Las entidades del dominio nunca se exponen directamente (RNF-08): la API responde
     /// con DTOs. AutoMapper hace esa conversión.
     ///
-    /// Por ahora está vacío. Cada historia agrega aquí sus mapeos, por ejemplo en la HU-01:
-    /// CreateMap&lt;Vaca, VacaResponse&gt;();
+    /// Cada historia agrega aquí sus mapeos.
     ///
     /// Se registra en Program.cs con AddAutoMapper.
     /// </remarks>
@@ -27,6 +28,11 @@ namespace BaityMu.Web.Mapping
         /// </summary>
         public BaityMuProfile()
         {
+            // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
+            // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:
+            // queda en 0 hasta que la HU-07 registre la producción.
+            CreateMap<Vaca, VacaResponse>()
+                .ForMember(d => d.LitrosProducidos, o => o.Ignore());
         }
     }
 }

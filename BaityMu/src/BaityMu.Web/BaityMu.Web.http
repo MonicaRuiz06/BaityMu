@@ -25,4 +25,39 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/diagnostico/errores/500
 Accept: application/json
 
+### HU-01 Registrar una vaca con nombre → 201
+POST {{BaityMu.Web_HostAddress}}/api/vacas
+Content-Type: application/json
+
+{
+  "raza": "Jersey",
+  "nombre": "Lola",
+  "fechaIngreso": "2026-12-01"
+}
+
+### HU-01 Registrar una vaca sin nombre → 201 (BaityCow N)
+POST {{BaityMu.Web_HostAddress}}/api/vacas
+Content-Type: application/json
+
+{
+  "raza": "Holstein"
+}
+
+### HU-01 Raza vacía → 400
+POST {{BaityMu.Web_HostAddress}}/api/vacas
+Content-Type: application/json
+
+{
+  "raza": ""
+}
+
+### HU-01 Nombre repetido → 409 (BaityCow ya existe)
+POST {{BaityMu.Web_HostAddress}}/api/vacas
+Content-Type: application/json
+
+{
+  "raza": "Holstein",
+  "nombre": "BaityCow"
+}
+
 ###

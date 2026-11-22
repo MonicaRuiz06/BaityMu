@@ -94,7 +94,7 @@ Server=(localdb)\MSSQLLocalDB;Database=BaityMu;Trusted_Connection=True;TrustServ
 
 **Al arrancar, la API aplica sola las migraciones pendientes** y crea la base de datos `BaityMu` en LocalDB si no existe. No hace falta correr `dotnet ef database update` a mano.
 
-Los valores iniciales de la granja (n, l, rendimiento, vida útil y precio de cada producto) están en la sección `GranjaInicial` del mismo archivo, y no en el código (RNF-09).
+Los valores iniciales de la granja (n, l, rendimiento, vida útil y precio de cada producto) están en la sección `GranjaInicial` del mismo archivo, y no en el código (RNF-09). **La primera vez que arranca**, la API crea la granja con sus n vacas (BaityCow, BaityCow 2... BaityCow 10). Para volver a empezar desde cero, borra la base con `dotnet ef database drop -f --project src\BaityMu.Infrastructure --startup-project src\BaityMu.Web`.
 
 ### Crear una migración
 
@@ -132,6 +132,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/` | Bienvenida de la API (¡Muuu!) |
+| POST | `/api/vacas` | Registra una vaca (HU-01). Sin nombre, se llama BaityCow, BaityCow 2... · 201, 400, 404, 409 |
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 
 Los endpoints del negocio (`/api/granja`, `/api/vacas`, `/api/produccion`, `/api/ventas`, `/api/reportes/...`) se agregan con cada historia de usuario.

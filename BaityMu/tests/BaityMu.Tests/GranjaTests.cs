@@ -59,5 +59,43 @@ namespace BaityMu.Tests
             // Assert
             Assert.That(_granja.NumeroVacas, Is.EqualTo(1));
         }
+
+        [Test]
+        public void AgregarVaca_SinNombre_LaSegundaSeLlamaBaityCow2()
+        {
+            // Arrange
+            _granja.AgregarVaca("Holstein", null, _fecha);
+
+            // Act
+            var segunda = _granja.AgregarVaca("Jersey", null, _fecha);
+
+            // Assert
+            Assert.That(segunda.Nombre, Is.EqualTo("BaityCow 2"));
+        }
+
+        [Test]
+        public void AgregarVaca_ConNombreRepetido_LanzaConflicto()
+        {
+            // Arrange
+            _granja.AgregarVaca("Holstein", "Lola", _fecha);
+
+            // Act y Assert
+            Assert.Throws<ConflictoException>(() =>
+                _granja.AgregarVaca("Jersey", "lola", _fecha));
+        }
+
+        [Test]
+        public void AgregarVaca_SinNombreYNombreOcupado_UsaElSiguienteNumero()
+        {
+            // Arrange: una vaca se llamó "BaityCow 3" a mano
+            _granja.AgregarVaca("Holstein", null, _fecha);           // BaityCow
+            _granja.AgregarVaca("Holstein", "BaityCow 3", _fecha);   // nombre a mano
+
+            // Act: la automática sería "BaityCow 3", pero está ocupada
+            var vaca = _granja.AgregarVaca("Holstein", null, _fecha);
+
+            // Assert
+            Assert.That(vaca.Nombre, Is.EqualTo("BaityCow 4"));
+        }
     }
 }

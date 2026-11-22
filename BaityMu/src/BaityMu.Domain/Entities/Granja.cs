@@ -2,7 +2,6 @@
 
 namespace BaityMu.Domain.Entities
 {
-
     /// <summary>
     /// Granja lechera de Baity. Es la dueña del hato y conoce cuántos litros da cada vaca (l).
     /// </summary>
@@ -34,7 +33,6 @@ namespace BaityMu.Domain.Entities
             LitrosPorVaca = litrosPorVaca;
         }
 
-
         /// <summary>Registra una vaca nueva en la granja (HU-01).</summary>
         /// <param name="raza">Raza de la vaca. Es obligatoria.</param>
         /// <param name="nombre">Nombre opcional. Si no se envía, la primera se llama "BaityCow",
@@ -42,11 +40,20 @@ namespace BaityMu.Domain.Entities
         /// <param name="fechaIngreso">Día en que la vaca llegó a la granja.</param>
         /// <returns>La vaca creada, activa.</returns>
         /// <exception cref="ReglaDeNegocioException">Si la raza viene vacía.</exception>
+        /// <exception cref="ConflictoException">Si ya hay una vaca con ese nombre.</exception>
         public Vaca AgregarVaca(string raza, string? nombre, DateOnly fechaIngreso)
         {
-            var nombreFinal = string.IsNullOrWhiteSpace(nombre)
-                ? (_vacas.Count == 0 ? "BaityCow" : $"BaityCow {_vacas.Count + 1}")
-                : nombre.Trim();
+            string nombreFinal;
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                nombreFinal = GenerarNombre();
+            }
+            else
+            {
+                nombreFinal = nombre.Trim();
+                if (ExisteNombre(nombreFinal))
+                    throw new ConflictoException($"Ya existe una vaca llamada {nombreFinal} en la granja.");
+            }
 
             var vaca = new Vaca(nombreFinal, raza, fechaIngreso);
             _vacas.Add(vaca);
@@ -54,5 +61,27 @@ namespace BaityMu.Domain.Entities
             return vaca;
         }
 
+        /// <summary>
+        /// Genera el nombre automático: "BaityCow" para la primera vaca y "BaityCow 2",
+        /// "BaityCow 3"... para las siguientes. Si ese nombre ya está ocupado, prueba el
+        /// siguiente número, para que nunca se repita.
+        /// </summary>
+        private string GenerarNombre()
+        {
+            var numero = _vacas.Count + 1;
+            var nombre = numero == 1 ? "BaityCow" : $"BaityCow {numero}";
+
+            while (ExisteNombre(nombre))
+            {
+                numero++;
+                nombre = $"BaityCow {numero}";
+            }
+
+            return nombre;
+        }
+
+        /// <summary>Indica si alguna vaca de la granja ya tiene ese nombre (sin importar mayúsculas).</summary>
+        private bool ExisteNombre(string nombre) =>
+            _vacas.Any(v => string.Equals(v.Nombre, nombre, StringComparison.OrdinalIgnoreCase));
     }
 }

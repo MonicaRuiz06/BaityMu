@@ -60,9 +60,9 @@ Se verificó con `dotnet list package --vulnerable` que ninguno tiene vulnerabil
 
 ## Para empezar: Épica 0 (issue #1)
 
-1. Abrir Visual Studio 2026 y crear la solución **en la carpeta del repositorio** (`C:\Users\lisak\BaityMu`).
+1. La solución está en `BaityMu\BaityMu.slnx`, dentro del repositorio, con los proyectos en `BaityMu\src\` y las pruebas en `BaityMu\tests\`.
 2. Seguir las tareas de la [Épica 0](https://github.com/MonicaRuiz06/BaityMu/issues/1) y moverla a **En progreso** en el [tablero](https://github.com/users/MonicaRuiz06/projects/1).
-3. Primera migración, desde la carpeta del repositorio:
+3. Primera migración, desde la carpeta de la solución (`C:\Users\lisak\BaityMu\BaityMu`):
 
 ```powershell
 dotnet ef migrations add Inicial --project src\BaityMu.Infrastructure --startup-project src\BaityMu.Web

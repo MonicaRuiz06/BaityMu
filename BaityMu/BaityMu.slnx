@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/BaityMu.Domain/BaityMu.Domain.csproj" />
+  <Project Path="src/BaityMu.Infrastructure/BaityMu.Infrastructure.csproj" />
+  <Project Path="src/BaityMu.Services/BaityMu.Services.csproj" />
+  <Project Path="src/BaityMu.Web/BaityMu.Web.csproj" />
+  <Project Path="tests/BaityMu.Tests/BaityMu.Tests.csproj" />
+</Solution>

@@ -9,7 +9,7 @@ Docente: Camilo Ernesto Charry Caicedo · Estudiante: Monica Alexandra Ruiz Mart
 
 ## Estado
 
-**Fase de análisis y diseño.** Todavía no hay código. El trabajo se organiza en el GitHub Project **BaityMu** (épicas e historias de usuario como issues).
+**Fase de análisis y diseño.** Todavía no hay código. El trabajo se organiza en el GitHub Project **[BaityMu](https://github.com/users/MonicaRuiz06/projects/1)**, con 7 épicas y 21 historias de usuario como [issues](https://github.com/MonicaRuiz06/BaityMu/issues).
 
 ## Documentación
 

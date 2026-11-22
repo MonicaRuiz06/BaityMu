@@ -1,6 +1,28 @@
+# BaityMu — colección de pruebas manuales.
+# En Visual Studio, con la API ejecutándose, haz clic en "Enviar solicitud" sobre cada petición.
+# Cada historia de usuario irá agregando aquí sus peticiones; al final quedará el
+# escenario de referencia completo del taller (días 1 a 17).
+
 @BaityMu.Web_HostAddress = http://localhost:5251
 
-GET {{BaityMu.Web_HostAddress}}/weatherforecast/
+### Bienvenida: confirma que la API está viva
+GET {{BaityMu.Web_HostAddress}}/
+Accept: application/json
+
+### Manejador de errores (solo en desarrollo) — 400 Bad Request
+GET {{BaityMu.Web_HostAddress}}/api/diagnostico/errores/400
+Accept: application/json
+
+### Manejador de errores — 404 Not Found
+GET {{BaityMu.Web_HostAddress}}/api/diagnostico/errores/404
+Accept: application/json
+
+### Manejador de errores — 409 Conflict
+GET {{BaityMu.Web_HostAddress}}/api/diagnostico/errores/409
+Accept: application/json
+
+### Manejador de errores — 500 Internal Server Error (no muestra detalles internos)
+GET {{BaityMu.Web_HostAddress}}/api/diagnostico/errores/500
 Accept: application/json
 
 ###

@@ -1,5 +1,6 @@
 ﻿using BaityMu.Domain.Interfaces;
 using BaityMu.Infrastructure.Data;
+using BaityMu.Infrastructure.Repositories;
 using BaityMu.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BaityMu.Infrastructure
 {
-
     /// <summary>
     /// Registro de los servicios de la capa Infrastructure en el contenedor de
     /// inyección de dependencias de .NET.
@@ -22,9 +22,8 @@ namespace BaityMu.Infrastructure
     /// </remarks>
     public static class DependencyInjection
     {
-
         /// <summary>
-        /// Registra el DbContext con SQL Server, la unidad de trabajo y el reloj.
+        /// Registra el DbContext con SQL Server, la unidad de trabajo, el reloj y los repositorios.
         /// </summary>
         /// <param name="services">Colección de servicios de la aplicación. El "this" lo
         /// convierte en método de extensión: en Program.cs se llama
@@ -40,8 +39,8 @@ namespace BaityMu.Infrastructure
         /// - Singleton (SystemClock): un único objeto para toda la aplicación, porque no
         ///   guarda estado.
         ///
-        /// Los repositorios de cada entidad (VacaRepository, LoteRepository...) se irán
-        /// registrando aquí con cada historia de usuario.
+        /// Los repositorios de cada entidad se registran aquí con cada historia de usuario
+        /// (HU-01: GranjaRepository).
         /// </remarks>
         public static IServiceCollection AddRepositories(
             this IServiceCollection services,
@@ -52,6 +51,10 @@ namespace BaityMu.Infrastructure
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddSingleton<IClock, SystemClock>();
+
+            // Repositorios (Scoped: comparten el DbContext de la petición)
+            services.AddScoped<IGranjaRepository, GranjaRepository>();
+
             return services;
         }
     }

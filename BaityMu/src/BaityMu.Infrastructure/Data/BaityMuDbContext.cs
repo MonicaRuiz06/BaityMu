@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BaityMu.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaityMu.Infrastructure.Data
 {
-
     /// <summary>
     /// Contexto de Entity Framework Core de BaityMu: la conexión entre el código
     /// y la base de datos SQL Server.
@@ -14,14 +14,18 @@ namespace BaityMu.Infrastructure.Data
     /// - Lleva la cuenta de lo que se agrega o modifica (change tracking).
     /// - Guarda todos esos cambios juntos, en una sola transacción, con SaveChangesAsync.
     ///
-    /// Por ahora no tiene tablas: se agregan con cada historia de usuario,
-    /// empezando por Granja y Vaca en la HU-01.
+    /// Las tablas se agregan con cada historia de usuario; la HU-01 agregó Granjas y Vacas.
     ///
     /// Solo la capa Infrastructure lo conoce. Los controllers nunca lo usan (RNF-02);
     /// los servicios trabajan con repositorios e IUnitOfWork.
     /// </remarks>
     public class BaityMuDbContext : DbContext
     {
+        /// <summary>Tabla Granjas. Solo tiene una fila: la granja de Baity.</summary>
+        public DbSet<Granja> Granjas => Set<Granja>();
+
+        /// <summary>Tabla Vacas: el hato. Las vacas se desactivan, nunca se borran (RNF-11).</summary>
+        public DbSet<Vaca> Vacas => Set<Vaca>();
 
         /// <summary>
         /// Crea el contexto con las opciones que recibe desde afuera.

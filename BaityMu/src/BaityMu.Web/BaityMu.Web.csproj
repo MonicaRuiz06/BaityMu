@@ -24,8 +24,4 @@
     <ProjectReference Include="..\BaityMu.Services\BaityMu.Services.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>

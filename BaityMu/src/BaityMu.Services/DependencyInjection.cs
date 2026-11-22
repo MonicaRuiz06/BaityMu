@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using BaityMu.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BaityMu.Services
 {
-
     /// <summary>
     /// Registro de los servicios de negocio (capa Services) en el contenedor de
     /// inyección de dependencias de .NET.
@@ -14,7 +14,6 @@ namespace BaityMu.Services
     /// </remarks>
     public static class DependencyInjection
     {
-
         /// <summary>
         /// Registra los servicios de negocio: GranjaService, ProduccionService,
         /// InventarioService, VentaService y ReporteService.
@@ -23,14 +22,15 @@ namespace BaityMu.Services
         /// Program.cs con builder.Services.AddServices().</param>
         /// <returns>La misma colección, para poder encadenar más registros.</returns>
         /// <remarks>
-        /// Por ahora está vacío: cada historia de usuario agrega aquí su servicio con
-        /// AddScoped (uno por petición HTTP), por ejemplo en la HU-01:
-        /// services.AddScoped&lt;IGranjaService, GranjaService&gt;();
+        /// Cada historia de usuario agrega aquí su servicio con AddScoped (uno por
+        /// petición HTTP, igual que el DbContext que usa por debajo).
         ///
         /// No recibe IConfiguration porque los servicios de negocio no leen appsettings.json.
         /// </remarks>
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
+            services.AddScoped<IGranjaService, GranjaService>();
+
             return services;
         }
     }

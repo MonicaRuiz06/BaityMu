@@ -1,4 +1,4 @@
-// =====================================================================================
+﻿// =====================================================================================
 // BaityMu.Web — Program.cs
 // Punto de entrada de la API y RAÍZ DE COMPOSICIÓN: aquí se conectan todas las capas.
 //
@@ -16,7 +16,9 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Infrastructure;
+using BaityMu.Domain.Interfaces;
 using BaityMu.Infrastructure.Data;
+using BaityMu.Infrastructure.Seed;
 using BaityMu.Services;
 using BaityMu.Web.Mapping;
 using BaityMu.Web.Middleware;
@@ -87,11 +89,12 @@ builder.Services.AddSwaggerGen(opciones =>
 var app = builder.Build();
 
 // -------------------------------------------------------------------------------------
-// 2. BASE DE DATOS: aplicar las migraciones pendientes al arrancar
+// 2. BASE DE DATOS: aplicar las migraciones y sembrar la granja al arrancar
 // -------------------------------------------------------------------------------------
 // Crea la base de datos BaityMu en LocalDB (si no existe) y aplica las migraciones que
 // falten, para no tener que correr "dotnet ef database update" a mano.
-// Mientras no exista ninguna migración (antes de la HU-01) no hace nada.
+// Después, si no hay granja, la crea con sus n vacas desde la sección GranjaInicial de
+// appsettings.json (RNF-09).
 using (var alcance = app.Services.CreateScope())
 {
     var db = alcance.ServiceProvider.GetRequiredService<BaityMuDbContext>();
@@ -99,6 +102,12 @@ using (var alcance = app.Services.CreateScope())
     {
         await db.Database.MigrateAsync();
     }
+
+    var granjaInicial = app.Configuration
+        .GetSection(GranjaInicialOptions.Seccion)
+        .Get<GranjaInicialOptions>() ?? new GranjaInicialOptions();
+    var reloj = alcance.ServiceProvider.GetRequiredService<IClock>();
+    await SembradorDeDatos.SembrarAsync(db, granjaInicial, reloj);
 }
 
 // -------------------------------------------------------------------------------------

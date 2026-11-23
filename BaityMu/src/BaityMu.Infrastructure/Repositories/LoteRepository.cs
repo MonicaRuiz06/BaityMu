@@ -28,6 +28,25 @@ namespace BaityMu.Infrastructure.Repositories
 
         /// <inheritdoc />
         /// <remarks>
+        /// Es la misma consulta que describe la sección 7 del taller y usa el índice FIFO
+        /// (TipoProducto, FechaProduccion, Id). "No vencido" es FechaVencimiento &gt;= fecha,
+        /// porque el día del vencimiento todavía se vende (RN-08).
+        /// </remarks>
+        public async Task<IReadOnlyList<LoteProducto>> ObtenerVendiblesAsync(
+            TipoProducto tipoProducto,
+            DateOnly fecha,
+            CancellationToken ct = default) =>
+            await Db.LotesProducto
+                .Where(l => l.TipoProducto == tipoProducto
+                            && l.CantidadDisponible > 0
+                            && l.FechaProduccion <= fecha
+                            && l.FechaVencimiento >= fecha)
+                .OrderBy(l => l.FechaProduccion)
+                .ThenBy(l => l.Id)
+                .ToListAsync(ct);
+
+        /// <inheritdoc />
+        /// <remarks>
         /// Sin AsNoTracking: EF tiene que vigilar estos lotes para guardar el cambio de
         /// disponible a dañado. Usa el índice por FechaVencimiento.
         /// </remarks>

@@ -36,6 +36,12 @@ namespace BaityMu.Infrastructure.Data
         /// <summary>Tabla LotesProducto: el inventario de queso y yogurt.</summary>
         public DbSet<LoteProducto> LotesProducto => Set<LoteProducto>();
 
+        /// <summary>Tabla Ventas: cabecera de cada venta.</summary>
+        public DbSet<Venta> Ventas => Set<Venta>();
+
+        /// <summary>Tabla VentaDetalles: de qué lote salió cada parte de una venta.</summary>
+        public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
+
         /// <summary>
         /// Crea el contexto con las opciones que recibe desde afuera.
         /// </summary>

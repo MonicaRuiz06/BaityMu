@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BaityMu.Client/BaityMu.Client.csproj" />
+  </Folder>
   <Project Path="src/BaityMu.Domain/BaityMu.Domain.csproj" />
   <Project Path="src/BaityMu.Infrastructure/BaityMu.Infrastructure.csproj" />
   <Project Path="src/BaityMu.Services/BaityMu.Services.csproj" />

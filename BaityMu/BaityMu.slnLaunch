@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "API + Front",
+    "Projects": [
+      {
+        "Path": "src\\BaityMu.Web\\BaityMu.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\\BaityMu.Client\\BaityMu.Client.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]

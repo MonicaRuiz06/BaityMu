@@ -173,6 +173,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | POST | `/api/transformaciones` | Transforma leche de un día en un lote de queso o yogurt; nunca más de lo producido (HU-09) · 201, 400, 409 |
 | GET | `/api/inventario?tipoProducto=&desde=&hasta=&fecha=` | Lotes con su estado (Disponible, Agotado, Vencido o Dañado) en orden FIFO (HU-10) · 200, 400 |
 | GET | `/api/inventario/lotes/{id}` | Un lote con su estado (HU-10) · 200, 404 |
+| POST | `/api/inventario/procesar-vencimientos?fecha=` | Lo vencido pasa a dañado; repetirlo no duplica (HU-11) · 200 |
 | GET | `/api/inventario/resumen?fecha=` | Por producto: vendible, vencido sin procesar y dañado (HU-10) · 200 |
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 

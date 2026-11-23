@@ -46,6 +46,14 @@ namespace BaityMu.Web.Mapping
                 .IncludeMembers(x => x.Lote);
             CreateMap<ResumenInventario, ResumenInventarioResponse>();
 
+            // HU-11: resultado de procesar vencimientos.
+            CreateMap<ResultadoVencimientos, ProcesarVencimientosResponse>();
+            CreateMap<LoteDañado, LoteDañadoResponse>()
+                .ForMember(d => d.LoteId, o => o.MapFrom(s => s.Lote.Id))
+                .ForMember(d => d.TipoProducto, o => o.MapFrom(s => s.Lote.TipoProducto))
+                .ForMember(d => d.FechaVencimiento, o => o.MapFrom(s => s.Lote.FechaVencimiento));
+            CreateMap<TotalDañado, TotalDañadoResponse>();
+
             // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
             // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:
             // queda en 0 hasta que la HU-07 registre la producción.

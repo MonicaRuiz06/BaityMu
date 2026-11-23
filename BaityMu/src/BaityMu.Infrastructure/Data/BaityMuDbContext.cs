@@ -33,6 +33,9 @@ namespace BaityMu.Infrastructure.Data
         /// <summary>Tabla ParametrosProducto: rendimiento, vida útil y precio del queso y el yogurt.</summary>
         public DbSet<ParametroProducto> ParametrosProducto => Set<ParametroProducto>();
 
+        /// <summary>Tabla LotesProducto: el inventario de queso y yogurt.</summary>
+        public DbSet<LoteProducto> LotesProducto => Set<LoteProducto>();
+
         /// <summary>
         /// Crea el contexto con las opciones que recibe desde afuera.
         /// </summary>

@@ -64,6 +64,17 @@ namespace BaityMu.Services
                 .ToList();
         }
 
+        /// <inheritdoc />
+        public async Task<VacaDetalle> ObtenerVacaAsync(int id, CancellationToken ct = default)
+        {
+            var granja = await ObtenerGranjaAsync(ct);
+            var vaca = granja.Vacas.FirstOrDefault(v => v.Id == id)
+                ?? throw new RecursoNoEncontradoException("una vaca", id);
+
+            var historial = await _producciones.ListarPorVacaAsync(id, ct);
+            return new VacaDetalle(vaca, historial);
+        }
+
         /// <summary>Trae la granja con sus vacas, o lanza 404 si no se ha sembrado.</summary>
         private async Task<Granja> ObtenerGranjaAsync(CancellationToken ct) =>
             await _granjas.ObtenerConVacasAsync(ct)

@@ -273,4 +273,44 @@ POST {{BaityMu.Web_HostAddress}}/api/inventario/procesar-vencimientos?fecha=2026
 ### HU-11 Procesar otra vez el día 17 → 200, no se duplica nada
 POST {{BaityMu.Web_HostAddress}}/api/inventario/procesar-vencimientos?fecha=2026-12-17
 
+### HU-13 Escenario día 3: 12 kg de queso → 201 (10 kg de Q1 + 2 kg de Q2)
+POST {{BaityMu.Web_HostAddress}}/api/ventas
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-03",
+  "tipoProducto": "Queso",
+  "cantidad": 12
+}
+
+### HU-13 Escenario día 3: 20 L de yogurt → 201 (salen de Y1; quedan 30 L)
+POST {{BaityMu.Web_HostAddress}}/api/ventas
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-03",
+  "tipoProducto": "Yogurt",
+  "cantidad": 20
+}
+
+### HU-13 Escenario día 17: 5 L de yogurt → 409 (no hay yogurt sin vencer)
+POST {{BaityMu.Web_HostAddress}}/api/ventas
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-17",
+  "tipoProducto": "Yogurt",
+  "cantidad": 5
+}
+
+### HU-13 Cantidad en cero → 400
+POST {{BaityMu.Web_HostAddress}}/api/ventas
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-03",
+  "tipoProducto": "Queso",
+  "cantidad": 0
+}
+
 ###

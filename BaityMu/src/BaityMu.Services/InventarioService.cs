@@ -10,18 +10,21 @@ namespace BaityMu.Services
     /// Servicio del inventario: consulta los lotes y calcula su estado según la fecha.
     /// </summary>
     /// <remarks>
-    /// Solo lee: no usa IUnitOfWork. El estado de cada lote lo decide el dominio
-    /// (LoteProducto.ObtenerEstado); el servicio solo elige la fecha y arma el resultado.
+    /// El estado de cada lote y el paso a dañado los decide el dominio
+    /// (LoteProducto.ObtenerEstado y MarcarComoDanado); el servicio elige la fecha, carga
+    /// los lotes y guarda con IUnitOfWork.
     /// </remarks>
     public sealed class InventarioService : IInventarioService
     {
         private readonly ILoteRepository _lotes;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IClock _reloj;
 
         /// <summary>Recibe sus dependencias por inyección de dependencias.</summary>
-        public InventarioService(ILoteRepository lotes, IClock reloj)
+        public InventarioService(ILoteRepository lotes, IUnitOfWork unitOfWork, IClock reloj)
         {
             _lotes = lotes;
+            _unitOfWork = unitOfWork;
             _reloj = reloj;
         }
 
@@ -68,6 +71,25 @@ namespace BaityMu.Services
                         CantidadDañada: delTipo.Sum(l => l.CantidadDanada));
                 })
                 .ToList();
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Solo trae los lotes vencidos que todavía tienen existencias. Un lote agotado o
+        /// ya procesado no aparece, así que procesar dos veces la misma fecha no duplica
+        /// el producto dañado (criterio 6). Todo se guarda en una sola transacción.
+        /// </remarks>
+        public async Task<ResultadoVencimientos> ProcesarVencimientosAsync(DateOnly? fecha, CancellationToken ct = default)
+        {
+            var dia = fecha ?? _reloj.Today;
+            var vencidos = await _lotes.ObtenerVencidosConExistenciasAsync(dia, ct);
+
+            var dañados = vencidos
+                .Select(lote => new LoteDañado(lote, lote.MarcarComoDanado(dia)))
+                .ToList();
+
+            await _unitOfWork.SaveChangesAsync(ct);
+            return new ResultadoVencimientos(dia, dañados);
         }
     }
 }

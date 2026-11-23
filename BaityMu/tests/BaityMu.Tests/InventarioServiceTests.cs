@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Infrastructure.Data;
@@ -35,7 +35,7 @@ namespace BaityMu.Tests
             var lotes = new LoteRepository(_db);
             var produccion = new ProduccionService(
                 new GranjaRepository(_db), new ProduccionRepository(_db), lotes, new UnitOfWork(_db), reloj);
-            _inventario = new InventarioService(lotes, reloj);
+            _inventario = new InventarioService(lotes, new UnitOfWork(_db), reloj);
 
             var granja = new Granja("Granja BaityMu", 15m);
             for (var i = 0; i < 10; i++)
@@ -169,6 +169,94 @@ namespace BaityMu.Tests
             Assert.That(yogurt.CantidadVendible, Is.EqualTo(0m));
             Assert.That(yogurt.CantidadVencidaSinProcesar, Is.EqualTo(50m));
             Assert.That(yogurt.CantidadDañada, Is.EqualTo(0m));
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-11 Procesar vencimientos
+        // ----------------------------------------------------------------------------
+
+        private static readonly DateOnly Dia16 = new(2026, 12, 16);
+        private static readonly DateOnly Dia17 = new(2026, 12, 17);
+
+        [Test]
+        public async Task ProcesarVencimientosAsync_Dia17_LosTreintaLitrosDeY1PasanADanadoYElResumenLoRefleja()
+        {
+            // Prueba mínima del taller. Arrange: el día 3 se vendieron 20 L de Y1 y quedan 30 L
+            // (la venta llega con la HU-13; aquí se deja Y1 en 30 L directamente).
+            await CambiarCantidadesAsync(_y1, disponible: 30m, danada: 0m);
+
+            // Act
+            var resultado = await _inventario.ProcesarVencimientosAsync(Dia17);
+
+            // Assert: el resultado
+            Assert.That(resultado.Lotes, Has.Count.EqualTo(1));
+            Assert.That(resultado.Lotes[0].Lote.Id, Is.EqualTo(_y1.Id));
+            Assert.That(resultado.Lotes[0].CantidadDañada, Is.EqualTo(30m));
+            Assert.That(resultado.TotalesPorProducto.Single(t => t.TipoProducto == TipoProducto.Yogurt).CantidadDañada, Is.EqualTo(30m));
+            Assert.That(resultado.TotalesPorProducto.Single(t => t.TipoProducto == TipoProducto.Queso).CantidadDañada, Is.EqualTo(0m));
+
+            // Assert: lo guardado y el resumen del inventario
+            _db.ChangeTracker.Clear();
+            var y1 = await _inventario.ObtenerLoteAsync(_y1.Id, Dia17);
+            Assert.That(y1.Lote.CantidadDisponible, Is.EqualTo(0m));
+            Assert.That(y1.Lote.CantidadDanada, Is.EqualTo(30m));
+            Assert.That(y1.Estado, Is.EqualTo(EstadoLote.Dañado));
+
+            var yogurt = (await _inventario.ObtenerResumenAsync(Dia17)).Single(r => r.TipoProducto == TipoProducto.Yogurt);
+            Assert.That(yogurt.CantidadDañada, Is.EqualTo(30m));
+            Assert.That(yogurt.CantidadVencidaSinProcesar, Is.EqualTo(0m));
+        }
+
+        [Test]
+        public async Task ProcesarVencimientosAsync_ElDiaDelVencimiento_NoDanaNada()
+        {
+            // Criterio 3: Y1 vence el 16; ese día todavía se vende
+            var resultado = await _inventario.ProcesarVencimientosAsync(Dia16);
+
+            Assert.That(resultado.Lotes, Is.Empty);
+            _db.ChangeTracker.Clear();
+            Assert.That((await _inventario.ObtenerLoteAsync(_y1.Id, Dia16)).Lote.CantidadDisponible, Is.EqualTo(50m));
+        }
+
+        [Test]
+        public async Task ProcesarVencimientosAsync_DosVecesLaMismaFecha_NoDuplicaLoDanado()
+        {
+            // Arrange
+            await _inventario.ProcesarVencimientosAsync(Dia17);
+            _db.ChangeTracker.Clear();
+
+            // Act
+            var segunda = await _inventario.ProcesarVencimientosAsync(Dia17);
+
+            // Assert
+            Assert.That(segunda.Lotes, Is.Empty);
+            _db.ChangeTracker.Clear();
+            Assert.That((await _inventario.ObtenerLoteAsync(_y1.Id, Dia17)).Lote.CantidadDanada, Is.EqualTo(50m));
+        }
+
+        [Test]
+        public async Task ProcesarVencimientosAsync_LoteAgotado_NoSeModifica()
+        {
+            // Arrange: Y1 se vendió completo
+            await CambiarCantidadesAsync(_y1, disponible: 0m, danada: 0m);
+
+            // Act
+            var resultado = await _inventario.ProcesarVencimientosAsync(Dia17);
+
+            // Assert: criterio 4
+            Assert.That(resultado.Lotes, Is.Empty);
+            _db.ChangeTracker.Clear();
+            var y1 = await _inventario.ObtenerLoteAsync(_y1.Id, Dia17);
+            Assert.That(y1.Lote.CantidadDanada, Is.EqualTo(0m));
+            Assert.That(y1.Estado, Is.EqualTo(EstadoLote.Agotado));
+        }
+
+        [Test]
+        public async Task ProcesarVencimientosAsync_ElQuesoDelEscenario_NoVenceElDia17()
+        {
+            var resultado = await _inventario.ProcesarVencimientosAsync(Dia17);
+
+            Assert.That(resultado.Lotes.Select(l => l.Lote.TipoProducto), Is.All.EqualTo(TipoProducto.Yogurt));
         }
     }
 }

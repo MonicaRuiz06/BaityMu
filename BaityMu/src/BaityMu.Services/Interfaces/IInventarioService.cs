@@ -31,5 +31,14 @@ namespace BaityMu.Services.Interfaces
         /// Siempre trae queso y yogurt, aunque alguno no tenga lotes.
         /// </summary>
         Task<IReadOnlyList<ResumenInventario>> ObtenerResumenAsync(DateOnly? fecha, CancellationToken ct = default);
+
+        /// <summary>
+        /// Procesa los vencimientos (HU-11, RN-08): lo que queda de cada lote vencido pasa
+        /// a dañado. Rol: BaityBodeguero.
+        /// </summary>
+        /// <param name="fecha">Día del proceso. Si es null, la de hoy.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>Los lotes afectados y el total dañado por producto.</returns>
+        Task<ResultadoVencimientos> ProcesarVencimientosAsync(DateOnly? fecha, CancellationToken ct = default);
     }
 }

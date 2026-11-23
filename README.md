@@ -139,6 +139,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | DELETE | `/api/vacas/{id}` | Retira una vaca: queda inactiva y conserva su historial (HU-04) · 204, 400, 404, 409 |
 | POST | `/api/vacas` | Registra una vaca (HU-01). Sin nombre, se llama BaityCow, BaityCow 2... · 201, 400, 404, 409 |
 | POST | `/api/produccion` | Registra la producción de un día: n × l, o litros por vaca; una sola vez por fecha (HU-07) · 201, 400, 404, 409 |
+| GET | `/api/produccion/{fecha}` | Producción de un día: cada vaca, total, transformado y disponible (HU-08) · 200, 404 |
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 
 Los endpoints del negocio (`/api/granja`, `/api/vacas`, `/api/produccion`, `/api/ventas`, `/api/reportes/...`) se agregan con cada historia de usuario.

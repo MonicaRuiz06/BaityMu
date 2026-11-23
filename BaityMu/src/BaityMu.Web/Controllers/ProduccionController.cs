@@ -16,6 +16,12 @@ namespace BaityMu.Web.Controllers
         private readonly IProduccionService _produccionService;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Nombre de la ruta GET por Id, para que CreatedAtRoute arme el encabezado Location.
+        /// Los nombres de ruta son globales en toda la API: no se pueden repetir entre controllers.
+        /// </summary>
+        private const string RutaProduccion = "ObtenerProduccion";
+
         /// <summary>Recibe el servicio y AutoMapper por inyección de dependencias.</summary>
         public ProduccionController(IProduccionService produccionService, IMapper mapper)
         {
@@ -51,8 +57,26 @@ namespace BaityMu.Web.Controllers
             var produccion = await _produccionService.RegistrarAsync(request, ct);
             var respuesta = _mapper.Map<ProduccionDiariaResponse>(produccion);
 
-            // GET /api/produccion/{fecha} llega con la HU-08.
-            return Created($"/api/produccion/{respuesta.Fecha:yyyy-MM-dd}", respuesta);
+            // 201 Created: el encabezado Location apunta a GET /api/produccion/{fecha}.
+            return CreatedAtRoute(RutaProduccion, new { fecha = respuesta.Fecha.ToString("yyyy-MM-dd") }, respuesta);
+        }
+
+        /// <summary>Consulta la producción de un día (HU-08).</summary>
+        /// <remarks>
+        /// Muestra los litros de cada vaca, el total del día, los litros ya transformados en
+        /// queso o yogurt y los que todavía están **disponibles** para transformar.
+        /// </remarks>
+        /// <param name="fecha">Día a consultar, en formato yyyy-MM-dd. Ejemplo: 2026-12-01.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">La producción del día.</response>
+        /// <response code="404">Ese día no hubo producción.</response>
+        [HttpGet("{fecha}", Name = RutaProduccion)]
+        [ProducesResponseType<ProduccionDiariaResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+        public async Task<ActionResult<ProduccionDiariaResponse>> Obtener(DateOnly fecha, CancellationToken ct)
+        {
+            var produccion = await _produccionService.ObtenerAsync(fecha, ct);
+            return Ok(_mapper.Map<ProduccionDiariaResponse>(produccion));
         }
     }
 }

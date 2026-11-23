@@ -176,4 +176,12 @@ Content-Type: application/json
   "vacas": [ { "vacaId": 999, "litros": 15 } ]
 }
 
+### HU-08 Consultar la producción del día 1 → 200
+GET {{BaityMu.Web_HostAddress}}/api/produccion/2026-12-01
+Accept: application/json
+
+### HU-08 Día sin producción → 404
+GET {{BaityMu.Web_HostAddress}}/api/produccion/2020-01-01
+Accept: application/json
+
 ###

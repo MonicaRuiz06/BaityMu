@@ -21,6 +21,12 @@ namespace BaityMu.Web.Controllers
         private readonly IGranjaService _granjaService;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Nombre de la ruta GET por Id, para que CreatedAtRoute arme el encabezado Location.
+        /// Los nombres de ruta son globales en toda la API: no se pueden repetir entre controllers.
+        /// </summary>
+        private const string RutaVaca = "ObtenerVaca";
+
         /// <summary>Recibe el servicio y AutoMapper por inyección de dependencias.</summary>
         public VacasController(IGranjaService granjaService, IMapper mapper)
         {
@@ -55,7 +61,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
         /// <response code="200">La vaca y su historial.</response>
         /// <response code="404">No existe una vaca con ese Id.</response>
-        [HttpGet("{id:int}", Name = nameof(Obtener))]
+        [HttpGet("{id:int}", Name = RutaVaca)]
         [ProducesResponseType<VacaDetalleResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
         public async Task<ActionResult<VacaDetalleResponse>> Obtener(int id, CancellationToken ct)
@@ -109,7 +115,7 @@ namespace BaityMu.Web.Controllers
             var respuesta = _mapper.Map<VacaResponse>(vaca);
 
             // 201 Created: el encabezado Location apunta a GET /api/vacas/{id} (HU-03).
-            return CreatedAtRoute(nameof(Obtener), new { id = respuesta.Id }, respuesta);
+            return CreatedAtRoute(RutaVaca, new { id = respuesta.Id }, respuesta);
         }
     }
 }

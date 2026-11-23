@@ -1,0 +1,22 @@
+@* Barra con la leche del día: cuánto se transformó y cuánto queda (HU-08). *@
+<div class="leche">
+    <div class="leche-barra" role="img"
+         aria-label="@($"{Formato.Litros(Produccion.LitrosTransformados)} transformados de {Formato.Litros(Produccion.TotalLitros)}")">
+        <span class="leche-usada" style="width:@Porcentaje(Produccion.LitrosTransformados)"></span>
+        <span class="leche-libre" style="width:@Porcentaje(Produccion.LitrosDisponibles)"></span>
+    </div>
+    <div class="leche-leyenda">
+        <span><i style="background:var(--paja)"></i>Transformada: <strong>@Formato.Litros(Produccion.LitrosTransformados)</strong></span>
+        <span><i style="background:var(--potrero);opacity:.5"></i>Disponible: <strong>@Formato.Litros(Produccion.LitrosDisponibles)</strong></span>
+        <span>Total: <strong>@Formato.Litros(Produccion.TotalLitros)</strong></span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProduccionDiaria Produccion { get; set; } = null!;
+
+    private string Porcentaje(decimal litros) =>
+        Produccion.TotalLitros == 0
+            ? "0%"
+            : (litros / Produccion.TotalLitros * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}

@@ -1,0 +1,40 @@
+@* Tabla de lotes del inventario, en el orden en que los recibe (FIFO). *@
+<div class="tabla-envoltura">
+    <table>
+        <thead>
+            <tr>
+                <th>Lote</th><th>Producto</th><th>Producción</th><th>Vence</th>
+                <th class="num">Inicial</th><th class="num">Disponible</th><th class="num">Dañado</th><th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lote in Lotes)
+            {
+                <tr>
+                    <td class="atenuada">#@lote.Id</td>
+                    <td><span class="insignia insignia-@lote.TipoProducto.ToString().ToLowerInvariant()">@lote.TipoProducto</span></td>
+                    <td>@Formato.Fecha(lote.FechaProduccion)</td>
+                    <td>
+                        @Formato.Fecha(lote.FechaVencimiento)
+                        @if (FechaConsulta is DateOnly hoy && lote.CantidadDisponible > 0)
+                        {
+                            var dias = lote.FechaVencimiento.DayNumber - hoy.DayNumber;
+                            <br /><small class="atenuada">@(dias switch { < 0 => $"venció hace {-dias} d", 0 => "vence hoy", 1 => "vence mañana", _ => $"en {dias} días" })</small>
+                        }
+                    </td>
+                    <td class="num">@Formato.ConUnidad(lote.CantidadInicial, lote.TipoProducto)</td>
+                    <td class="num"><strong>@Formato.ConUnidad(lote.CantidadDisponible, lote.TipoProducto)</strong></td>
+                    <td class="num">@(lote.CantidadDanada > 0 ? Formato.ConUnidad(lote.CantidadDanada, lote.TipoProducto) : "—")</td>
+                    <td><InsigniaEstado Estado="lote.Estado" /></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<Lote> Lotes { get; set; } = new();
+
+    /// <summary>Si viene, muestra cuántos días faltan para el vencimiento.</summary>
+    [Parameter] public DateOnly? FechaConsulta { get; set; }
+}

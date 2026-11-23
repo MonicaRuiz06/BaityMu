@@ -2,17 +2,16 @@
 
 # BaityMu
 
-API Web en .NET con arquitectura en capas para la granja lechera de Baity. Cubre la producción de leche, la transformación en queso y yogurt, el inventario por lotes con salida FIFO, las ventas y los reportes.
+API Web en .NET con arquitectura en capas para la granja lechera de Baity. Cubre la producción de leche, la transformación en queso y yogurt, el inventario por lotes con salida FIFO, las ventas y los reportes. Incluye un **front en Blazor WebAssembly** para usarla desde el navegador.
 
 Taller final de **Lenguajes de Programación**, Universidad Santiago de Cali.
 Docente: Camilo Ernesto Charry Caicedo · Estudiante: Monica Alexandra Ruiz Martinez.
 
 ## Estado
 
-**Épica 0 terminada: base del proyecto.**
-- La solución tiene las 4 capas y un proyecto de pruebas.
-- Hay persistencia con EF Core y SQL Server, Swagger, un manejador global de errores y pruebas con NUnit.
-- Lo siguiente son las historias de usuario, empezando por la [HU-01 Registrar una vaca](https://github.com/MonicaRuiz06/BaityMu/issues/3).
+**Épicas 0 a 3 terminadas** (HU-01 a HU-10): granja y vacas, producción diaria, transformación en lotes e inventario, con 93 pruebas NUnit en verde.
+- Lo siguiente es la HU-11 (procesar vencimientos) y la venta FIFO (HU-13).
+- El front cubre todo lo que ya existe en la API; ventas y reportes se agregan cuando estén sus historias.
 
 El trabajo se organiza en el GitHub Project **[BaityMu](https://github.com/users/MonicaRuiz06/projects/1)**, con 7 épicas y 21 historias de usuario como [issues](https://github.com/MonicaRuiz06/BaityMu/issues).
 
@@ -26,6 +25,7 @@ El trabajo se organiza en el GitHub Project **[BaityMu](https://github.com/users
 | AutoMapper | 16.3.0 |
 | Swashbuckle.AspNetCore (Swagger/OpenAPI) | 10.3.1 |
 | NUnit | 4.x |
+| Blazor WebAssembly (front) | 10.0.15 |
 
 ## Arquitectura
 
@@ -39,6 +39,7 @@ BaityMu.Web → BaityMu.Services → BaityMu.Domain
 - **Services**: casos de uso (servicios de negocio) y DTOs.
 - **Web**: controllers, `Program.cs` (raíz de composición), Swagger, AutoMapper, CORS y el manejador global de errores. Referencia a Infrastructure solo para registrar dependencias.
 - **Tests**: pruebas unitarias con NUnit, `FakeClock` y base de datos EF Core InMemory.
+- **Client** (front): Blazor WebAssembly. Corre en el navegador y solo conoce la API por HTTP (no referencia ninguna capa), por eso la API tiene CORS habilitado.
 
 ```text
 BaityMu/                         ← repositorio
@@ -50,7 +51,8 @@ BaityMu/                         ← repositorio
     │   ├── BaityMu.Domain/
     │   ├── BaityMu.Infrastructure/
     │   ├── BaityMu.Services/
-    │   └── BaityMu.Web/
+    │   ├── BaityMu.Web/         API
+    │   └── BaityMu.Client/      front (Blazor WebAssembly)
     └── tests/
         └── BaityMu.Tests/
 ```
@@ -83,6 +85,34 @@ dotnet run --project src\BaityMu.Web --launch-profile http
 ```
 
 Luego abre http://localhost:5251/swagger.
+
+### API + front juntos
+
+- **Visual Studio:** en la barra de arriba, junto al botón ▶, elige el perfil de inicio **"API + Front"** y presiona F5. Se abren Swagger (http://localhost:5251/swagger) y el front (http://localhost:5282).
+- **Terminal:** en dos terminales, desde la carpeta `BaityMu`:
+
+```powershell
+dotnet run --project src\BaityMu.Web --launch-profile http
+```
+
+```powershell
+dotnet run --project src\BaityMu.Client --launch-profile http
+```
+
+La dirección de la API que usa el front está en `src/BaityMu.Client/wwwroot/appsettings.json` (`ApiBaseUrl`).
+
+### El front
+
+| Pantalla | Rol | Qué hace |
+|---|---|---|
+| Inicio | Todos | n, l, n × l, la leche del día y el inventario vendible |
+| Vacas | BaityGanadero | Listar (activas o todas), registrar y retirar vacas; ficha con su historial |
+| Producción | BaityGanadero | Registrar el ordeño (n × l o litros por vaca) y ver lo transformado y lo disponible |
+| Transformación | BaityQuesero | Convertir leche en queso o yogurt, con vista previa de la cantidad y el vencimiento |
+| Inventario | BaityBodeguero | Resumen por producto y lotes en orden FIFO con su estado |
+| Configuración | BaityAdministrador | Cambiar l y el rendimiento, la vida útil y el precio de cada producto |
+
+Arriba está el **día de trabajo**: la fecha que usan los formularios y las consultas. Con el botón **"Escenario · 1 dic"** se salta al día 1 del escenario de referencia, y moviendo el día (por ejemplo al 17 de diciembre) se ve cómo los lotes pasan a *Vencido*. El navegador recuerda el día elegido.
 
 ### Base de datos
 

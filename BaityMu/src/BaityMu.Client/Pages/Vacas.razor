@@ -1,0 +1,182 @@
+@page "/vacas"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+@inject IJSRuntime JS
+
+<PageTitle>Vacas · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityGanadero</span>
+        <h1>El hato</h1>
+        <p>Las vacas de la granja y la leche que ha dado cada una. Una vaca retirada deja de contar en n, pero su historial se conserva.</p>
+    </div>
+</div>
+
+<div class="grilla grilla-lateral">
+    <section>
+        <div class="barra-herramientas">
+            <div class="pestanas" role="tablist">
+                <button type="button" class="@(!_incluirRetiradas ? "activa" : "")" @onclick="() => VerRetiradasAsync(false)">Activas</button>
+                <button type="button" class="@(_incluirRetiradas ? "activa" : "")" @onclick="() => VerRetiradasAsync(true)">Todas</button>
+            </div>
+            @if (_vacas is not null)
+            {
+                <span class="atenuada">@_vacas.Count(v => v.Activa) activas · @Formato.Litros(_vacas.Sum(v => v.LitrosProducidos)) producidos</span>
+            }
+        </div>
+
+        @if (_error is not null)
+        {
+            <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+        }
+        else if (_vacas is null)
+        {
+            <Cargando />
+        }
+        else if (_vacas.Count == 0)
+        {
+            <div class="panel vacio"><span class="vacio-icono">🐄</span><p>No hay vacas registradas.</p></div>
+        }
+        else
+        {
+            <div class="tabla-envoltura">
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Nombre</th><th>Raza</th><th>Ingreso</th><th class="num">Leche total</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var vaca in _vacas)
+                        {
+                            <tr class="@(vaca.Activa ? "" : "fila-inactiva")">
+                                <td class="atenuada">@vaca.Id</td>
+                                <td><a href="vacas/@vaca.Id"><strong>@vaca.Nombre</strong></a></td>
+                                <td>@vaca.Raza</td>
+                                <td>@Formato.Fecha(vaca.FechaIngreso)</td>
+                                <td class="num">@Formato.Litros(vaca.LitrosProducidos)</td>
+                                <td><span class="insignia insignia-@(vaca.Activa ? "activa" : "retirada")">@(vaca.Activa ? "Activa" : "Retirada")</span></td>
+                                <td class="num">
+                                    @if (vaca.Activa)
+                                    {
+                                        <button type="button" class="boton-mini" disabled="@_ocupado" @onclick="() => RetirarAsync(vaca)">Retirar</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <aside class="panel">
+        <h2>Registrar una vaca</h2>
+        <EditForm Model="_nueva" OnSubmit="RegistrarAsync" class="form">
+            <label class="campo">
+                <span>Raza *</span>
+                <InputText @bind-Value="_nueva.Raza" list="razas" placeholder="Holstein, Jersey, Normando…" />
+                <datalist id="razas">
+                    <option value="Holstein" /><option value="Jersey" /><option value="Normando" /><option value="Pardo Suizo" /><option value="Gyr" />
+                </datalist>
+            </label>
+            <label class="campo">
+                <span>Nombre</span>
+                <InputText @bind-Value="_nueva.Nombre" placeholder="Opcional" />
+                <small>Si lo dejas vacío, se llama BaityCow, BaityCow 2…</small>
+            </label>
+            <label class="campo">
+                <span>Fecha de ingreso</span>
+                <InputDate @bind-Value="_fechaIngreso" />
+            </label>
+            <button type="submit" class="boton" disabled="@_ocupado">🐄 Registrar vaca</button>
+        </EditForm>
+    </aside>
+</div>
+
+@code {
+    private List<Vaca>? _vacas;
+    private ApiException? _error;
+    private bool _incluirRetiradas;
+    private bool _ocupado;
+    private CrearVaca _nueva = new();
+    private DateOnly _fechaIngreso;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fechaIngreso = Estado.Dia;
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            _vacas = await Api.ListarVacasAsync(_incluirRetiradas);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+
+    private async Task VerRetiradasAsync(bool incluir)
+    {
+        _incluirRetiradas = incluir;
+        await CargarAsync();
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            _nueva.Nombre = string.IsNullOrWhiteSpace(_nueva.Nombre) ? null : _nueva.Nombre;
+            _nueva.FechaIngreso = _fechaIngreso;
+            var vaca = await Api.RegistrarVacaAsync(_nueva);
+            Estado.Exito($"{vaca.Nombre} ({vaca.Raza}) ya es parte del hato.");
+            _nueva = new();
+            await CargarAsync();
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
+    private async Task RetirarAsync(Vaca vaca)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Retirar a {vaca.Nombre}? Dejará de contar en n, pero su historial se conserva."))
+            return;
+
+        _ocupado = true;
+        try
+        {
+            await Api.RetirarVacaAsync(vaca.Id);
+            Estado.Exito($"{vaca.Nombre} se retiró del hato.");
+            await CargarAsync();
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
+    private void AlCambiarDia()
+    {
+        _fechaIngreso = Estado.Dia;
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

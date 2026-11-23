@@ -1,0 +1,28 @@
+@* Avisos que aparecen abajo a la derecha: éxito en verde, error en rojo. Se van solos. *@
+@implements IDisposable
+@inject EstadoApp Estado
+
+<div class="avisos" role="status" aria-live="polite">
+    @foreach (var aviso in Estado.Avisos.ToList())
+    {
+        <div class="aviso aviso-@(aviso.Tipo == TipoAviso.Exito ? "exito" : "error")">
+            <span class="aviso-icono" aria-hidden="true">@(aviso.Tipo == TipoAviso.Exito ? "✓" : "!")</span>
+            <div>
+                @if (aviso.Titulo is not null)
+                {
+                    <strong>@aviso.Titulo</strong>
+                }
+                <p>@aviso.Mensaje</p>
+            </div>
+            <button type="button" class="aviso-cerrar" aria-label="Cerrar" @onclick="() => Estado.Cerrar(aviso)">✕</button>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Estado.AvisosCambiaron += Refrescar;
+
+    private void Refrescar() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Estado.AvisosCambiaron -= Refrescar;
+}

@@ -1,0 +1,97 @@
+@page "/vacas/{Id:int}"
+@inject BaityMuApi Api
+
+<PageTitle>@(_vaca?.Nombre ?? "Vaca") · BaityMu</PageTitle>
+
+<a href="vacas" class="boton-mini" style="margin-bottom:16px">‹ Volver al hato</a>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_vaca is null)
+{
+    <Cargando />
+}
+else
+{
+    <section class="panel">
+        <div class="ficha">
+            <div class="ficha-avatar" aria-hidden="true">🐄</div>
+            <div style="flex:1;min-width:220px">
+                <h1>@_vaca.Nombre</h1>
+                <dl class="datos">
+                    <div><dt>Raza</dt><dd>@_vaca.Raza</dd></div>
+                    <div><dt>Ingreso</dt><dd>@Formato.Fecha(_vaca.FechaIngreso)</dd></div>
+                    <div><dt>Estado</dt><dd><span class="insignia insignia-@(_vaca.Activa ? "activa" : "retirada")">@(_vaca.Activa ? "Activa" : "Retirada")</span></dd></div>
+                    <div><dt>Id</dt><dd>#@_vaca.Id</dd></div>
+                </dl>
+            </div>
+        </div>
+    </section>
+
+    <div class="grilla grilla-3 seccion">
+        <Metrica Etiqueta="Leche total" Valor="@Formato.Litros(_vaca.LitrosProducidos)" Destacada="true" />
+        <Metrica Etiqueta="Días ordeñada" Valor="@_vaca.Historial.Count.ToString()" />
+        <Metrica Etiqueta="Promedio por día"
+                 Valor="@(_vaca.Historial.Count == 0 ? "—" : Formato.Litros(_vaca.LitrosProducidos / _vaca.Historial.Count))" />
+    </div>
+
+    <section class="seccion">
+        <h2>Historial de producción</h2>
+        @if (_vaca.Historial.Count == 0)
+        {
+            <div class="panel vacio"><span class="vacio-icono">🥛</span><p>@_vaca.Nombre todavía no se ha ordeñado.</p></div>
+        }
+        else
+        {
+            var ultimos = _vaca.Historial.TakeLast(30).ToList();
+            var maximo = ultimos.Max(p => p.Litros);
+            <div class="panel">
+                <div class="grafica" role="img" aria-label="Litros por día de los últimos @ultimos.Count ordeños">
+                    @foreach (var dia in ultimos)
+                    {
+                        <div class="grafica-barra" title="@Formato.Fecha(dia.Fecha): @Formato.Litros(dia.Litros)"
+                             style="height:@(maximo == 0 ? "2" : (dia.Litros / maximo * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                    }
+                </div>
+                <div class="grafica-eje"><span>@Formato.Fecha(ultimos[0].Fecha)</span><span>@Formato.Fecha(ultimos[^1].Fecha)</span></div>
+            </div>
+
+            <div class="tabla-envoltura seccion">
+                <table>
+                    <thead><tr><th>Fecha</th><th class="num">Litros</th></tr></thead>
+                    <tbody>
+                        @foreach (var dia in _vaca.Historial.AsEnumerable().Reverse())
+                        {
+                            <tr><td>@Formato.FechaLarga(dia.Fecha)</td><td class="num">@Formato.Litros(dia.Litros)</td></tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><td>Total</td><td class="num">@Formato.Litros(_vaca.LitrosProducidos)</td></tr></tfoot>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private VacaDetalle? _vaca;
+    private ApiException? _error;
+
+    protected override Task OnParametersSetAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            _vaca = await Api.ObtenerVacaAsync(Id);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+}

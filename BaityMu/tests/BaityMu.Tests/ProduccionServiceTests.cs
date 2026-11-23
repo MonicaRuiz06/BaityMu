@@ -33,7 +33,7 @@ namespace BaityMu.Tests
             var granjas = new GranjaRepository(_db);
             var producciones = new ProduccionRepository(_db);
             var unitOfWork = new UnitOfWork(_db);
-            _servicio = new ProduccionService(granjas, producciones, unitOfWork, _reloj);
+            _servicio = new ProduccionService(granjas, producciones, new LoteRepository(_db), unitOfWork, _reloj);
             _granjaService = new GranjaService(granjas, producciones, unitOfWork, _reloj);
 
             // Escenario de referencia: 10 vacas (Id 1 a 10) de 15 L.

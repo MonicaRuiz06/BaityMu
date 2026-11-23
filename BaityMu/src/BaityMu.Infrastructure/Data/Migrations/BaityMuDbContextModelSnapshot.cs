@@ -47,6 +47,68 @@ namespace BaityMu.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.LoteProducto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CantidadDanada")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<decimal>("CantidadDisponible")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<decimal>("CantidadInicial")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<DateOnly>("FechaProduccion")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("FechaVencimiento")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("LitrosUsados")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("TipoProducto")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaProduccion");
+
+                    b.HasIndex("FechaVencimiento");
+
+                    b.HasIndex("TipoProducto", "FechaProduccion", "Id")
+                        .HasDatabaseName("IX_LotesProducto_FIFO");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TipoProducto", "FechaProduccion", "Id"), new[] { "CantidadDisponible", "FechaVencimiento" });
+
+                    b.ToTable("LotesProducto", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LotesProducto_CantidadDanada", "[CantidadDanada] >= 0");
+
+                            t.HasCheckConstraint("CK_LotesProducto_CantidadDisponible", "[CantidadDisponible] >= 0");
+
+                            t.HasCheckConstraint("CK_LotesProducto_CantidadInicial", "[CantidadInicial] > 0");
+
+                            t.HasCheckConstraint("CK_LotesProducto_Cantidades", "[CantidadDisponible] + [CantidadDanada] <= [CantidadInicial]");
+
+                            t.HasCheckConstraint("CK_LotesProducto_FechaVencimiento", "[FechaVencimiento] >= [FechaProduccion]");
+
+                            t.HasCheckConstraint("CK_LotesProducto_LitrosUsados", "[LitrosUsados] > 0");
+                        });
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.ParametroProducto", b =>
                 {
                     b.Property<int>("Id")

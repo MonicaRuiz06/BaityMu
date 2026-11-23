@@ -184,4 +184,64 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/produccion/2020-01-01
 Accept: application/json
 
+### HU-09 Escenario día 1: 100 L en queso → 201 (Q1 = 10 kg)
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01",
+  "tipoProducto": "Queso",
+  "litros": 100
+}
+
+### HU-09 Escenario día 1: 50 L en yogurt → 201 (Y1 = 50 L, vence 2026-12-16)
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01",
+  "tipoProducto": "Yogurt",
+  "litros": 50
+}
+
+### HU-09 Ya no queda leche del día 1 → 409 (RN-02)
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01",
+  "tipoProducto": "Queso",
+  "litros": 1
+}
+
+### HU-09 Escenario día 2: 150 L en queso → 201 (Q2 = 15 kg)
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-02",
+  "tipoProducto": "Queso",
+  "litros": 150
+}
+
+### HU-09 Día sin producción → 409
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2020-01-01",
+  "tipoProducto": "Queso",
+  "litros": 10
+}
+
+### HU-09 Litros en cero → 400
+POST {{BaityMu.Web_HostAddress}}/api/transformaciones
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01",
+  "tipoProducto": "Yogurt",
+  "litros": 0
+}
+
 ###

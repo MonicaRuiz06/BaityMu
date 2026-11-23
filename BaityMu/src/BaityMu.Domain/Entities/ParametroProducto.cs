@@ -55,6 +55,24 @@ namespace BaityMu.Domain.Entities
         }
 
         /// <summary>
+        /// Cantidad de producto que sale de unos litros de leche (RN-03): litros ÷ rendimiento.
+        /// Por ejemplo, 100 L de leche con 10 L/kg dan 10 kg de queso.
+        /// </summary>
+        /// <remarks>
+        /// Se redondea hacia abajo a 3 decimales (la precisión de la tabla), para no
+        /// registrar nunca más producto del que realmente salió.
+        /// </remarks>
+        public decimal CalcularCantidad(decimal litros) =>
+            Math.Round(litros / LitrosPorUnidad, 3, MidpointRounding.ToZero);
+
+        /// <summary>
+        /// Fecha en que vence un lote producido en una fecha: producción + vida útil (RN-04).
+        /// Por ejemplo, yogurt del 2026-12-01 con 15 días de vida útil vence el 2026-12-16.
+        /// </summary>
+        public DateOnly CalcularVencimiento(DateOnly fechaProduccion) =>
+            fechaProduccion.AddDays(VidaUtilDias);
+
+        /// <summary>
         /// Cambia los parámetros del producto (HU-06). Primero valida todo y solo después
         /// asigna: si un valor es inválido, no cambia nada.
         /// </summary>

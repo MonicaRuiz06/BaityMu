@@ -47,6 +47,53 @@ namespace BaityMu.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.ParametroProducto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("GranjaId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LitrosPorUnidad")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("decimal(10,3)");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TipoProducto")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Unidad")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("VidaUtilDias")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GranjaId", "TipoProducto")
+                        .IsUnique();
+
+                    b.ToTable("ParametrosProducto", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ParametrosProducto_LitrosPorUnidad", "[LitrosPorUnidad] > 0");
+
+                            t.HasCheckConstraint("CK_ParametrosProducto_PrecioUnitario", "[PrecioUnitario] >= 0");
+
+                            t.HasCheckConstraint("CK_ParametrosProducto_VidaUtilDias", "[VidaUtilDias] > 0");
+                        });
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.ProduccionLeche", b =>
                 {
                     b.Property<int>("Id")
@@ -115,6 +162,15 @@ namespace BaityMu.Infrastructure.Data.Migrations
                     b.ToTable("Vacas", (string)null);
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.ParametroProducto", b =>
+                {
+                    b.HasOne("BaityMu.Domain.Entities.Granja", null)
+                        .WithMany("Productos")
+                        .HasForeignKey("GranjaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.ProduccionLeche", b =>
                 {
                     b.HasOne("BaityMu.Domain.Entities.Vaca", null)
@@ -135,6 +191,8 @@ namespace BaityMu.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("BaityMu.Domain.Entities.Granja", b =>
                 {
+                    b.Navigation("Productos");
+
                     b.Navigation("Vacas");
                 });
 #pragma warning restore 612, 618

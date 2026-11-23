@@ -32,6 +32,7 @@ namespace BaityMu.Tests
         private InventarioService _inventario = null!;
         private VentaService _ventas = null!;
         private GranjaService _granja = null!;
+        private ReporteService _reportes = null!;
 
         [SetUp]
         public async Task SetUp()
@@ -44,7 +45,9 @@ namespace BaityMu.Tests
             var unitOfWork = new UnitOfWork(_db);
             _produccion = new ProduccionService(granjas, producciones, lotes, unitOfWork, _reloj);
             _inventario = new InventarioService(lotes, unitOfWork, _reloj);
-            _ventas = new VentaService(granjas, lotes, new VentaRepository(_db), unitOfWork, _reloj);
+            var ventas = new VentaRepository(_db);
+            _ventas = new VentaService(granjas, lotes, ventas, unitOfWork, _reloj);
+            _reportes = new ReporteService(ventas);
             _granja = new GranjaService(granjas, producciones, unitOfWork, _reloj);
 
             var granja = new Granja("Granja BaityMu", 15m);
@@ -247,6 +250,58 @@ namespace BaityMu.Tests
         {
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _ventas.ListarAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
+        }
+
+        // ------------------------------------------------------------ HU-15 Reporte de ventas
+
+        [Test]
+        public async Task ReporteVentas_DelEscenario_TieneTotalesPorProductoYTotalGeneral()
+        {
+            await HastaElDia3Async();
+
+            var reporte = await _reportes.VentasAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 3), null);
+
+            // Cada venta: 12 kg × 28.000 y 20 L × 6.000
+            Assert.That(reporte.Ventas.Select(v => (v.TipoProducto, v.Cantidad, v.PrecioUnitario, v.Total)),
+                Is.EqualTo(new[]
+                {
+                    (TipoProducto.Queso, 12m, 28000m, 336000m),
+                    (TipoProducto.Yogurt, 20m, 6000m, 120000m),
+                }));
+            Assert.That(reporte.TotalesPorProducto.Select(t => (t.TipoProducto, t.NumeroVentas, t.Total)),
+                Is.EqualTo(new[] { (TipoProducto.Queso, 1, 336000m), (TipoProducto.Yogurt, 1, 120000m) }));
+            Assert.That(reporte.TotalGeneral, Is.EqualTo(456000m));
+        }
+
+        [Test]
+        public async Task ReporteVentas_FiltrandoPorProducto_SoloSumaEseProducto()
+        {
+            await HastaElDia3Async();
+
+            var reporte = await _reportes.VentasAsync(null, null, TipoProducto.Queso);
+
+            Assert.That(reporte.Ventas.Select(v => v.TipoProducto), Is.All.EqualTo(TipoProducto.Queso));
+            Assert.That(reporte.TotalesPorProducto, Has.Count.EqualTo(1));
+            Assert.That(reporte.TotalGeneral, Is.EqualTo(336000m));
+        }
+
+        [Test]
+        public async Task ReporteVentas_SinVentasEnElRango_DevuelveListasVaciasYTotalCero()
+        {
+            await HastaElDia3Async();
+
+            var reporte = await _reportes.VentasAsync(new DateOnly(2026, 12, 10), new DateOnly(2026, 12, 20), null);
+
+            Assert.That(reporte.Ventas, Is.Empty);
+            Assert.That(reporte.TotalesPorProducto, Is.Empty);
+            Assert.That(reporte.TotalGeneral, Is.EqualTo(0m));
+        }
+
+        [Test]
+        public void ReporteVentas_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _reportes.VentasAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
         }
     }
 }

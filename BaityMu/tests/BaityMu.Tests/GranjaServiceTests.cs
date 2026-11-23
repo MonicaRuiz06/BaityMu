@@ -182,5 +182,56 @@ namespace BaityMu.Tests
             Assert.That(todas, Has.Count.EqualTo(2));
             Assert.That(todas.Single(v => v.Vaca.Nombre == "Lola").Vaca.Activa, Is.False);
         }
+    
+        // ----------------------------------------------------------------------------
+        // HU-03 Consultar una vaca
+        // ----------------------------------------------------------------------------
+
+        [Test]
+        public async Task ObtenerVacaAsync_VacaExistente_DevuelveSuHistorialOrdenado()
+        {
+            // Arrange: se guardan los días en desorden a propósito
+            var (baityCow, lola) = await SembrarDosVacasAsync();
+            _db.ProduccionesLeche.AddRange(
+                new ProduccionLeche(baityCow.Id, new DateOnly(2026, 12, 2), 14m),
+                new ProduccionLeche(baityCow.Id, new DateOnly(2026, 12, 1), 15m),
+                new ProduccionLeche(lola.Id, new DateOnly(2026, 12, 1), 20m));
+            await _db.SaveChangesAsync();
+
+            // Act
+            var detalle = await _servicio.ObtenerVacaAsync(baityCow.Id);
+
+            // Assert: solo los días de BaityCow, del más antiguo al más reciente
+            Assert.That(detalle.Vaca.Nombre, Is.EqualTo("BaityCow"));
+            Assert.That(detalle.Historial.Select(p => p.Fecha),
+                Is.EqualTo(new[] { new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 2) }));
+            Assert.That(detalle.LitrosProducidos, Is.EqualTo(29m));
+        }
+
+        [Test]
+        public async Task ObtenerVacaAsync_SinOrdenar_TieneHistorialVacioYCeroLitros()
+        {
+            // Arrange
+            var (_, lola) = await SembrarDosVacasAsync();
+
+            // Act
+            var detalle = await _servicio.ObtenerVacaAsync(lola.Id);
+
+            // Assert
+            Assert.That(detalle.Historial, Is.Empty);
+            Assert.That(detalle.LitrosProducidos, Is.EqualTo(0m));
+        }
+
+        [Test]
+        public async Task ObtenerVacaAsync_IdInexistente_LanzaNoEncontrado()
+        {
+            // Arrange
+            await SembrarDosVacasAsync();
+
+            // Act y Assert
+            var error = Assert.ThrowsAsync<RecursoNoEncontradoException>(() =>
+                _servicio.ObtenerVacaAsync(99));
+            Assert.That(error!.Message, Is.EqualTo("No existe una vaca con id 99."));
+        }
     }
 }

@@ -29,5 +29,12 @@ namespace BaityMu.Services.Interfaces
         /// <returns>Las vacas ordenadas por Id. Lista vacía si no hay vacas.</returns>
         /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
         Task<IReadOnlyList<VacaConLitros>> ListarVacasAsync(bool incluirRetiradas, CancellationToken ct = default);
+
+        /// <summary>Consulta una vaca con su producción total y la de cada día (HU-03).</summary>
+        /// <param name="id">Id de la vaca. También encuentra las vacas retiradas.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>La vaca y su historial.</returns>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La vaca o la granja no existen (404).</exception>
+        Task<VacaDetalle> ObtenerVacaAsync(int id, CancellationToken ct = default);
     }
 }

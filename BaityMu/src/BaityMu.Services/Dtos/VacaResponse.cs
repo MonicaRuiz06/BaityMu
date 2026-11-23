@@ -1,9 +1,9 @@
-namespace BaityMu.Services.Dtos
+﻿namespace BaityMu.Services.Dtos
 {
     /// <summary>
     /// Vaca tal como la devuelve la API. Se llena desde la entidad Vaca con AutoMapper.
     /// </summary>
-    public sealed class VacaResponse
+    public class VacaResponse
     {
         /// <summary>Id asignado por la base de datos.</summary>
         public int Id { get; set; }

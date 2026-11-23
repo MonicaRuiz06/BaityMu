@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 
 namespace BaityMu.Domain.Interfaces
 {
@@ -15,5 +15,13 @@ namespace BaityMu.Domain.Interfaces
         /// no aparecen: quien lo use debe tomarlas como 0 L.
         /// </returns>
         Task<IReadOnlyDictionary<int, decimal>> SumarLitrosPorVacaAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// Devuelve el historial de producción de una vaca, del día más antiguo al más reciente (HU-03).
+        /// </summary>
+        /// <param name="vacaId">Id de la vaca.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>Los ordeños de la vaca. Lista vacía si nunca se ha ordeñado.</returns>
+        Task<IReadOnlyList<ProduccionLeche>> ListarPorVacaAsync(int vacaId, CancellationToken ct = default);
     }
 }

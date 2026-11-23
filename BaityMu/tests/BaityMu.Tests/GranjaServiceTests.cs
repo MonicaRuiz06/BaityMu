@@ -1,4 +1,5 @@
 ﻿using BaityMu.Domain.Entities;
+using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Infrastructure.Data;
 using BaityMu.Infrastructure.Repositories;
@@ -306,6 +307,94 @@ namespace BaityMu.Tests
             // Act y Assert
             Assert.ThrowsAsync<ConflictoException>(() =>
                 _servicio.RetirarVacaAsync(lola.Id));
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-06 Actualizar la configuración de la granja
+        // ----------------------------------------------------------------------------
+
+        /// <summary>Guarda la granja con los productos del taller.</summary>
+        private async Task SembrarGranjaConProductosAsync()
+        {
+            var granja = new Granja("Granja BaityMu", 15m);
+            granja.AgregarProducto(TipoProducto.Queso, "kg", 10m, 30, 28000m);
+            granja.AgregarProducto(TipoProducto.Yogurt, "L", 1m, 15, 6000m);
+            _db.Granjas.Add(granja);
+            await _db.SaveChangesAsync();
+            _db.ChangeTracker.Clear();
+        }
+
+        /// <summary>Vuelve a leer la granja desde la base de datos, como en otra petición.</summary>
+        private async Task<Granja> LeerGranjaGuardadaAsync()
+        {
+            _db.ChangeTracker.Clear();
+            return (await new GranjaRepository(_db).ObtenerCompletaAsync())!;
+        }
+
+        [Test]
+        public async Task ActualizarAsync_ConValoresValidos_GuardaLaConfiguracionNueva()
+        {
+            // Arrange
+            await SembrarGranjaConProductosAsync();
+            var request = new ActualizarGranjaRequest
+            {
+                LitrosPorVaca = 16m,
+                Productos =
+                {
+                    new() { TipoProducto = TipoProducto.Yogurt, LitrosPorUnidad = 1m, VidaUtilDias = 15, PrecioUnitario = 6500m }
+                }
+            };
+
+            // Act
+            await _servicio.ActualizarAsync(request);
+
+            // Assert
+            var granja = await LeerGranjaGuardadaAsync();
+            Assert.That(granja.LitrosPorVaca, Is.EqualTo(16m));
+            Assert.That(granja.ObtenerProducto(TipoProducto.Yogurt).PrecioUnitario, Is.EqualTo(6500m));
+            Assert.That(granja.ObtenerProducto(TipoProducto.Queso).PrecioUnitario, Is.EqualTo(28000m),
+                "El queso no venía en la petición: no cambia");
+        }
+
+        [Test]
+        public async Task ActualizarAsync_ConUnValorInvalido_NoGuardaNada()
+        {
+            // Arrange: l es válido, pero la vida útil del queso no
+            await SembrarGranjaConProductosAsync();
+            var request = new ActualizarGranjaRequest
+            {
+                LitrosPorVaca = 16m,
+                Productos =
+                {
+                    new() { TipoProducto = TipoProducto.Queso, LitrosPorUnidad = 10m, VidaUtilDias = 0, PrecioUnitario = 28000m }
+                }
+            };
+
+            // Act
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() => _servicio.ActualizarAsync(request));
+
+            // Assert: ni siquiera l cambió
+            var granja = await LeerGranjaGuardadaAsync();
+            Assert.That(granja.LitrosPorVaca, Is.EqualTo(15m));
+            Assert.That(granja.ObtenerProducto(TipoProducto.Queso).VidaUtilDias, Is.EqualTo(30));
+        }
+
+        [Test]
+        public async Task ActualizarAsync_ProductoRepetido_LanzaReglaDeNegocio()
+        {
+            // Arrange
+            await SembrarGranjaConProductosAsync();
+            var request = new ActualizarGranjaRequest
+            {
+                Productos =
+                {
+                    new() { TipoProducto = TipoProducto.Yogurt, LitrosPorUnidad = 1m, VidaUtilDias = 15, PrecioUnitario = 6000m },
+                    new() { TipoProducto = TipoProducto.Yogurt, LitrosPorUnidad = 1m, VidaUtilDias = 10, PrecioUnitario = 7000m }
+                }
+            };
+
+            // Act y Assert
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() => _servicio.ActualizarAsync(request));
         }
     }
 }

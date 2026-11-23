@@ -19,6 +19,15 @@ namespace BaityMu.Services.Interfaces
         /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
         Task<Granja> ObtenerAsync(CancellationToken ct = default);
 
+        /// <summary>Cambia l y los parámetros de los productos (HU-06).</summary>
+        /// <param name="request">Los valores nuevos. Lo que no se envía se conserva.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>La granja con la configuración nueva.</returns>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">Algún valor no es
+        /// válido, o un producto viene repetido (400). En ese caso no se guarda nada.</exception>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
+        Task<Granja> ActualizarAsync(ActualizarGranjaRequest request, CancellationToken ct = default);
+
         /// <summary>Registra una vaca nueva en la granja (HU-01).</summary>
         /// <param name="request">Raza, nombre opcional y fecha de ingreso opcional.</param>
         /// <param name="ct">Permite cancelar la operación.</param>

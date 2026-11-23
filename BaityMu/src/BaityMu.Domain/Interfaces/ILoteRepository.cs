@@ -16,6 +16,13 @@ namespace BaityMu.Domain.Interfaces
         Task<decimal> LitrosTransformadosAsync(DateOnly fechaProduccion, CancellationToken ct = default);
 
         /// <summary>
+        /// Lotes que se pueden vender en una fecha (HU-13): de ese producto, con existencias,
+        /// producidos hasta esa fecha y sin vencer, en orden FIFO. Vienen con seguimiento de
+        /// cambios, porque la venta los descuenta.
+        /// </summary>
+        Task<IReadOnlyList<LoteProducto>> ObtenerVendiblesAsync(TipoProducto tipoProducto, DateOnly fecha, CancellationToken ct = default);
+
+        /// <summary>
         /// Lotes que ya vencieron en una fecha y todavía tienen existencias (HU-11):
         /// FechaVencimiento &lt; fecha y CantidadDisponible &gt; 0. Vienen con seguimiento
         /// de cambios, porque se van a modificar.

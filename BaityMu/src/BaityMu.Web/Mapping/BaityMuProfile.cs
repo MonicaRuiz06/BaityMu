@@ -54,6 +54,11 @@ namespace BaityMu.Web.Mapping
                 .ForMember(d => d.FechaVencimiento, o => o.MapFrom(s => s.Lote.FechaVencimiento));
             CreateMap<TotalDañado, TotalDañadoResponse>();
 
+            // HU-13: la venta con sus detalles. La fecha de producción sale del lote (JOIN).
+            CreateMap<Venta, VentaResponse>();
+            CreateMap<VentaDetalle, VentaDetalleResponse>()
+                .ForMember(d => d.FechaProduccion, o => o.MapFrom(s => s.Lote.FechaProduccion));
+
             // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
             // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:
             // queda en 0 hasta que la HU-07 registre la producción.

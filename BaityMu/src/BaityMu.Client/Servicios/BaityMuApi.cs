@@ -91,6 +91,10 @@ public sealed class BaityMuApi(HttpClient http)
     public Task<List<ResumenInventario>> ResumenInventarioAsync(DateOnly fecha) =>
         GetAsync<List<ResumenInventario>>($"api/inventario/resumen?fecha={F(fecha)}");
 
+    // ------------------------------------------------------------------ Ventas
+
+    public Task<Venta> RegistrarVentaAsync(NuevaVenta datos) => SendAsync<Venta>(HttpMethod.Post, "api/ventas", datos);
+
     // ------------------------------------------------------------------ Plomería
 
     private async Task<T> GetAsync<T>(string url)

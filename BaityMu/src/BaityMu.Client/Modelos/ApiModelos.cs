@@ -254,6 +254,17 @@ public sealed class ProductoElaborado
     public int NumeroLotes { get; set; }
 }
 
+public sealed class ProductoTotal
+{
+    public TipoProducto TipoProducto { get; set; }
+    public string Unidad { get; set; } = "";
+    public decimal Producido { get; set; }
+    public decimal Vendido { get; set; }
+    public decimal Disponible { get; set; }
+    public decimal VencidoSinProcesar { get; set; }
+    public decimal Dañado { get; set; }
+}
+
 public sealed class TotalVentasProducto
 {
     public TipoProducto TipoProducto { get; set; }

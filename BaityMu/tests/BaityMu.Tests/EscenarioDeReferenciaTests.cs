@@ -21,7 +21,7 @@ namespace BaityMu.Tests
     /// | 2 | Producción y transformación | 150 L; Q2 = 15 kg |
     /// | 3 | Ventas | 12 kg de queso = 10 de Q1 + 2 de Q2; 20 L de yogurt de Y1 |
     /// | 17 | Vencimientos y venta | Y1: 30 L a dañado; vender 5 L de yogurt → 409 |
-    /// El reporte de producto total (Queso 25/12/13/0 · Yogurt 50/20/0/30) se agrega con la HU-18.
+    /// | 17 | Reporte de producto total | Queso 25/12/13/0 · Yogurt 50/20/0/30 (HU-18) |
     /// </remarks>
     [TestFixture]
     public class EscenarioDeReferenciaTests
@@ -47,7 +47,7 @@ namespace BaityMu.Tests
             _inventario = new InventarioService(lotes, unitOfWork, _reloj);
             var ventas = new VentaRepository(_db);
             _ventas = new VentaService(granjas, lotes, ventas, unitOfWork, _reloj);
-            _reportes = new ReporteService(granjas, ventas, producciones, lotes);
+            _reportes = new ReporteService(granjas, ventas, producciones, lotes, _reloj);
             _granja = new GranjaService(granjas, producciones, unitOfWork, _reloj);
 
             var granja = new Granja("Granja BaityMu", 15m);
@@ -119,7 +119,16 @@ namespace BaityMu.Tests
                 "Día 17: vender 5 L de yogurt → 409");
             NuevaPeticion();
 
-            // Resumen al día 17 (el reporte de producto total llega con la HU-18)
+            // Reporte de producto total al día 17 (HU-18): la tabla del taller
+            var total = await _reportes.ProductoTotalAsync();
+            Assert.That(total.Select(t => (t.TipoProducto, t.Producido, t.Vendido, t.Disponible, t.Dañado)),
+                Is.EqualTo(new[]
+                {
+                    (TipoProducto.Queso, 25m, 12m, 13m, 0m),
+                    (TipoProducto.Yogurt, 50m, 20m, 0m, 30m),
+                }), "Queso 25/12/13/0 · Yogurt 50/20/0/30");
+
+            // Resumen de inventario al día 17
             var resumen = await _inventario.ObtenerResumenAsync(null);
             var queso = resumen.Single(r => r.TipoProducto == TipoProducto.Queso);
             var yogurt = resumen.Single(r => r.TipoProducto == TipoProducto.Yogurt);
@@ -390,6 +399,42 @@ namespace BaityMu.Tests
         {
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _reportes.ProductoDiarioAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1)));
+        }
+
+        // ------------------------------------------------------------ HU-18 Reporte de producto total
+
+        [Test]
+        public async Task ReporteProductoTotal_VencidoSinProcesar_NoCuentaComoDisponible()
+        {
+            // Día 17 sin procesar vencimientos: los 30 L de Y1 siguen en el lote pero ya no se venden.
+            await HastaElDia3Async();
+            _reloj.AvanzarDias(14);
+
+            var yogurt = (await _reportes.ProductoTotalAsync()).Single(t => t.TipoProducto == TipoProducto.Yogurt);
+
+            Assert.That((yogurt.Producido, yogurt.Vendido, yogurt.Disponible, yogurt.VencidoSinProcesar, yogurt.Dañado),
+                Is.EqualTo((50m, 20m, 0m, 30m, 0m)));
+        }
+
+        [Test]
+        public async Task ReporteProductoTotal_ConFecha_UsaEsaFechaParaLoVencido()
+        {
+            await HastaElDia3Async();   // el reloj queda en el día 3
+
+            var dia3 = (await _reportes.ProductoTotalAsync()).Single(t => t.TipoProducto == TipoProducto.Yogurt);
+            var dia17 = (await _reportes.ProductoTotalAsync(new DateOnly(2026, 12, 17))).Single(t => t.TipoProducto == TipoProducto.Yogurt);
+
+            Assert.That((dia3.Disponible, dia3.VencidoSinProcesar), Is.EqualTo((30m, 0m)));
+            Assert.That((dia17.Disponible, dia17.VencidoSinProcesar), Is.EqualTo((0m, 30m)));
+        }
+
+        [Test]
+        public async Task ReporteProductoTotal_SinLotes_MuestraLosProductosEnCero()
+        {
+            var total = await _reportes.ProductoTotalAsync();
+
+            Assert.That(total.Select(t => (t.TipoProducto, t.Unidad, t.Producido)),
+                Is.EqualTo(new[] { (TipoProducto.Queso, "kg", 0m), (TipoProducto.Yogurt, "L", 0m) }));
         }
     }
 }

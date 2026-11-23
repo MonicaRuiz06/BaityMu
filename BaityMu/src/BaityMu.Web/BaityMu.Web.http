@@ -337,6 +337,10 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-31&hasta=2026-12-01
 Accept: application/json
 
+### HU-18 Producto total → 200 (escenario al día 17: Queso 25/12/13/0 · Yogurt 50/20/0/30)
+GET {{BaityMu.Web_HostAddress}}/api/reportes/producto-total?fecha=2026-12-17
+Accept: application/json
+
 ### HU-17 Producto por día de diciembre → 200 (escenario: día 1 = 10 kg queso + 50 L yogurt; día 2 = 15 kg queso)
 GET {{BaityMu.Web_HostAddress}}/api/reportes/producto-diario?desde=2026-12-01&hasta=2026-12-31
 Accept: application/json

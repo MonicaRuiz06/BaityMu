@@ -84,5 +84,27 @@ namespace BaityMu.Web.Controllers
             [FromQuery] DateOnly? hasta,
             CancellationToken ct) =>
             Ok(await _reportes.ProductoDiarioAsync(desde, hasta, ct));
+
+        /// <summary>Balance de cada producto: producido, vendido, disponible y dañado (HU-18).</summary>
+        /// <remarks>
+        /// Escenario completo (día 17, después de procesar vencimientos):
+        ///
+        /// | Producto | Producido | Vendido | Disponible | Dañado |
+        /// |---|---|---|---|---|
+        /// | Queso (kg) | 25 | 12 | 13 | 0 |
+        /// | Yogurt (L) | 50 | 20 | 0 | 30 |
+        ///
+        /// Si hay lotes vencidos sin procesar, su cantidad sale en **vencidoSinProcesar**
+        /// (no se puede vender, pero todavía no está marcada como dañada).
+        /// </remarks>
+        /// <param name="fecha">Fecha de consulta (yyyy-MM-dd). Opcional: si no llega, se usa la de hoy.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">Un renglón por producto.</response>
+        [HttpGet("producto-total")]
+        [ProducesResponseType<IReadOnlyList<ProductoTotalItem>>(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<ProductoTotalItem>>> ProductoTotal(
+            [FromQuery] DateOnly? fecha,
+            CancellationToken ct) =>
+            Ok(await _reportes.ProductoTotalAsync(fecha, ct));
     }
 }

@@ -254,6 +254,86 @@ namespace BaityMu.Services
             };
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// 1. Trae los ordeños del período y los agrupa por vaca (total, días, promedio).
+        /// 2. El nombre y la raza salen de las vacas de la granja (también las retiradas:
+        ///    si una vaca produjo en el período, se evalúa aunque hoy esté retirada).
+        /// 3. Cada vaca se compara contra el promedio POR VACA (total ÷ ordeños). Se compara
+        ///    con los valores sin redondear, así con litros iguales ninguna queda por debajo.
+        /// </remarks>
+        public async Task<ReporteVacasResponse> VacasAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default)
+        {
+            ValidarRango(desde, hasta);
+
+            var producciones = await _producciones.ListarAsync(desde, hasta, ct);
+            var reporte = new ReporteVacasResponse { Desde = desde, Hasta = hasta };
+
+            // Criterio 5: sin producción → 200 sin vacas evaluadas.
+            if (producciones.Count == 0)
+                return reporte;
+
+            var granja = await _granjas.ObtenerCompletaAsync(ct);
+            var vacas = granja?.Vacas.ToDictionary(v => v.Id) ?? new Dictionary<int, Vaca>();
+
+            var litrosTotales = producciones.Sum(p => p.Litros);
+            var promedioPorVaca = litrosTotales / producciones.Count;
+            var diasConProduccion = producciones.Select(p => p.Fecha).Distinct().Count();
+
+            // Promedio exacto de cada vaca (sin redondear) para comparar bien.
+            var porVaca = producciones
+                .GroupBy(p => p.VacaId)
+                .Select(g => new
+                {
+                    VacaId = g.Key,
+                    Dias = g.Count(),
+                    Litros = g.Sum(p => p.Litros),
+                    Promedio = g.Sum(p => p.Litros) / g.Count(),
+                })
+                .OrderByDescending(x => x.Promedio)
+                .ThenBy(x => x.VacaId)
+                .ToList();
+
+            VacaProduccionItem Item(int vacaId, int dias, decimal litros, decimal promedio)
+            {
+                vacas.TryGetValue(vacaId, out var vaca);
+                return new VacaProduccionItem
+                {
+                    VacaId = vacaId,
+                    Nombre = vaca?.Nombre ?? $"Vaca {vacaId}",
+                    Raza = vaca?.Raza ?? string.Empty,
+                    Activa = vaca?.Activa ?? false,
+                    DiasOrdenada = dias,
+                    LitrosTotales = litros,
+                    PromedioDiario = Math.Round(promedio, 2),
+                    Faltante = promedio < promedioPorVaca ? Math.Round(promedioPorVaca - promedio, 2) : 0m,
+                };
+            }
+
+            var items = porVaca.Select(x => Item(x.VacaId, x.Dias, x.Litros, x.Promedio)).ToList();
+
+            reporte.DiasConProduccion = diasConProduccion;
+            reporte.VacasEvaluadas = items.Count;
+            reporte.LitrosTotales = litrosTotales;
+            reporte.PromedioDiarioHato = Math.Round(litrosTotales / diasConProduccion, 2);
+            reporte.PromedioPorVaca = Math.Round(promedioPorVaca, 2);
+            reporte.Vacas = items;
+            // La lista ya viene de mayor a menor: la primera es la mayor y la última la menor.
+            reporte.VacaMayor = items.First();
+            reporte.VacaMenor = items.Last();
+            reporte.PorDebajoDelPromedio = porVaca
+                .Where(x => x.Promedio < promedioPorVaca)
+                .OrderBy(x => x.Promedio)
+                .ThenBy(x => x.VacaId)
+                .Select(x => Item(x.VacaId, x.Dias, x.Litros, x.Promedio))
+                .ToList();
+
+            return reporte;
+        }
+
         /// <summary>Suma un grupo de lotes en un renglón del reporte de producto.</summary>
         private static ProductoElaboradoItem Elaborado(
             DateOnly? fecha,

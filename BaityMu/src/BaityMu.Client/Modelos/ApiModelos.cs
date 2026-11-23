@@ -292,6 +292,33 @@ public sealed class TotalDanadoDelReporte
     public decimal Cantidad { get; set; }
 }
 
+public sealed class ReporteVacas
+{
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public int DiasConProduccion { get; set; }
+    public int VacasEvaluadas { get; set; }
+    public decimal LitrosTotales { get; set; }
+    public decimal PromedioDiarioHato { get; set; }
+    public decimal PromedioPorVaca { get; set; }
+    public VacaDelReporte? VacaMayor { get; set; }
+    public VacaDelReporte? VacaMenor { get; set; }
+    public List<VacaDelReporte> Vacas { get; set; } = new();
+    public List<VacaDelReporte> PorDebajoDelPromedio { get; set; } = new();
+}
+
+public sealed class VacaDelReporte
+{
+    public int VacaId { get; set; }
+    public string Nombre { get; set; } = "";
+    public string Raza { get; set; } = "";
+    public bool Activa { get; set; }
+    public int DiasOrdenada { get; set; }
+    public decimal LitrosTotales { get; set; }
+    public decimal PromedioDiario { get; set; }
+    public decimal Faltante { get; set; }
+}
+
 public sealed class TotalVentasProducto
 {
     public TipoProducto TipoProducto { get; set; }

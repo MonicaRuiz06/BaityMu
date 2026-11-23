@@ -428,6 +428,63 @@ namespace BaityMu.Tests
             Assert.That((dia17.Disponible, dia17.VencidoSinProcesar), Is.EqualTo((0m, 30m)));
         }
 
+        // ------------------------------------------------------------ HU-20 Reporte de vacas
+
+        [Test]
+        public async Task ReporteVacas_ConLitrosDistintos_IdentificaMayorMenorYLasDeAbajo()
+        {
+            // Ejemplo de la HU: BaityCow (Id 1) da 20 L y la vaca 2 da 10 L.
+            // Promedio por vaca = (20 + 10) ÷ 2 = 15 L; el hato dio 30 L ese día.
+            await _produccion.RegistrarAsync(new RegistrarProduccionRequest
+            {
+                Vacas = { new() { VacaId = 1, Litros = 20m }, new() { VacaId = 2, Litros = 10m } },
+            });
+            NuevaPeticion();
+
+            var reporte = await _reportes.VacasAsync(null, null);
+
+            Assert.That(reporte.VacasEvaluadas, Is.EqualTo(2));
+            Assert.That(reporte.PromedioPorVaca, Is.EqualTo(15m));
+            Assert.That(reporte.PromedioDiarioHato, Is.EqualTo(30m));
+            Assert.That((reporte.VacaMayor!.VacaId, reporte.VacaMayor.Nombre, reporte.VacaMayor.PromedioDiario),
+                Is.EqualTo((1, "BaityCow", 20m)));
+            Assert.That((reporte.VacaMenor!.VacaId, reporte.VacaMenor.PromedioDiario), Is.EqualTo((2, 10m)));
+            Assert.That(reporte.PorDebajoDelPromedio.Select(v => (v.VacaId, v.Faltante)),
+                Is.EqualTo(new[] { (2, 5m) }), "Solo la vaca 2 está por debajo: le faltan 5 L");
+        }
+
+        [Test]
+        public async Task ReporteVacas_TodasIguales_NingunaQuedaPorDebajo()
+        {
+            await HastaElDia3Async();   // todas las vacas dan 15 L los días 1 y 2
+
+            var reporte = await _reportes.VacasAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 3));
+
+            Assert.That(reporte.VacasEvaluadas, Is.EqualTo(10));
+            Assert.That(reporte.DiasConProduccion, Is.EqualTo(2));
+            Assert.That(reporte.PromedioDiarioHato, Is.EqualTo(150m));
+            Assert.That(reporte.PromedioPorVaca, Is.EqualTo(15m));
+            Assert.That(reporte.PorDebajoDelPromedio, Is.Empty);
+        }
+
+        [Test]
+        public async Task ReporteVacas_SinProduccionEnElRango_NoEvaluaVacas()
+        {
+            var reporte = await _reportes.VacasAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 31));
+
+            Assert.That(reporte.VacasEvaluadas, Is.EqualTo(0));
+            Assert.That(reporte.Vacas, Is.Empty);
+            Assert.That(reporte.VacaMayor, Is.Null);
+            Assert.That(reporte.VacaMenor, Is.Null);
+        }
+
+        [Test]
+        public void ReporteVacas_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _reportes.VacasAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1)));
+        }
+
         // ------------------------------------------------------------ HU-19 Reporte de producto dañado
 
         [Test]

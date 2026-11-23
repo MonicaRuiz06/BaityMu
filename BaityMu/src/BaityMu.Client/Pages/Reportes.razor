@@ -55,7 +55,7 @@
             <button type="button" class="@(_vista == Vista.Producto ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Producto)">🧀 Producto por día</button>
             <button type="button" class="@(_vista == Vista.Balance ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Balance)">⚖️ Balance</button>
             <button type="button" class="@(_vista == Vista.Danado ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Danado)">🗑️ Dañado</button>
-            <button type="button" disabled title="Llega con la HU-20">🐄 Vacas</button>
+            <button type="button" class="@(_vista == Vista.Vacas ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Vacas)">🐄 Vacas</button>
         </div>
     </div>
 
@@ -331,11 +331,79 @@
             </div>
         }
     }
+    else if (_vista == Vista.Vacas && _vacas is not null)
+    {
+        @if (_vacas.VacasEvaluadas == 0)
+        {
+            <SinDatos Icono="🐄" Texto="@($"No hubo ordeño entre el {Formato.Fecha(_desde)} y el {Formato.Fecha(_hasta)}: no hay vacas que evaluar.")" />
+        }
+        else
+        {
+            <div class="grilla grilla-4">
+                <Metrica Etiqueta="Promedio diario del hato" Valor="@Formato.Litros(_vacas.PromedioDiarioHato)"
+                         Nota="@($"{Formato.Litros(_vacas.LitrosTotales)} en {_vacas.DiasConProduccion} días")" Destacada="true" />
+                <Metrica Etiqueta="Promedio por vaca" Valor="@Formato.Litros(_vacas.PromedioPorVaca)"
+                         Nota="@($"Por día · {_vacas.VacasEvaluadas} vacas evaluadas")" />
+                <Metrica Etiqueta="🏆 La que más produce" Valor="@Formato.Litros(_vacas.VacaMayor!.PromedioDiario)"
+                         Nota="@($"{_vacas.VacaMayor.Nombre} · por día")" />
+                <Metrica Etiqueta="La que menos produce" Valor="@Formato.Litros(_vacas.VacaMenor!.PromedioDiario)"
+                         Nota="@($"{_vacas.VacaMenor.Nombre} · por día")" />
+            </div>
+
+            @if (_vacas.PorDebajoDelPromedio.Count == 0)
+            {
+                <div class="panel panel-nota" style="margin-top:16px">
+                    ✅ Ninguna vaca está por debajo del promedio de @Formato.Litros(_vacas.PromedioPorVaca) por día.
+                </div>
+            }
+            else
+            {
+                <div class="panel panel-nota" style="margin-top:16px">
+                    ⚠ @(_vacas.PorDebajoDelPromedio.Count == 1 ? "1 vaca está" : $"{_vacas.PorDebajoDelPromedio.Count} vacas están")
+                    por debajo del promedio de @Formato.Litros(_vacas.PromedioPorVaca) por día:
+                    @string.Join(", ", _vacas.PorDebajoDelPromedio.Select(v => $"{v.Nombre} (le faltan {Formato.Litros(v.Faltante)})")).
+                </div>
+            }
+
+            <div class="tabla-envoltura" style="margin-top:16px">
+                <table>
+                    <thead>
+                        <tr><th>Vaca</th><th>Raza</th><th class="num">Días</th><th class="num">Litros</th><th class="num">Promedio/día</th><th style="min-width:140px">Frente al promedio</th><th class="num">Le falta</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var v in _vacas.Vacas)
+                        {
+                            var debajo = v.Faltante > 0;
+                            <tr>
+                                <td>
+                                    <a href="@($"vacas/{v.VacaId}")">@v.Nombre</a>
+                                    @if (!v.Activa)
+                                    {
+                                        <span class="atenuada" style="font-size:.78rem"> · retirada</span>
+                                    }
+                                </td>
+                                <td>@v.Raza</td>
+                                <td class="num">@v.DiasOrdenada</td>
+                                <td class="num">@Formato.Litros(v.LitrosTotales)</td>
+                                <td class="num"><strong>@Formato.Litros(v.PromedioDiario)</strong></td>
+                                <td>
+                                    <div class="leche-barra" role="img" aria-label="@($"{Formato.Litros(v.PromedioDiario)} de {Formato.Litros(MaximoVaca)}")">
+                                        <span style="width:@Porcentaje(v.PromedioDiario, MaximoVaca);background:@(debajo ? "var(--arcilla)" : "var(--potrero)")"></span>
+                                    </div>
+                                </td>
+                                <td class="num" style="@(debajo ? "color:var(--arcilla);font-weight:600" : "")">@(debajo ? Formato.Litros(v.Faltante) : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
 </section>
 
 @code {
     /// <summary>Los reportes que ya existen en la API. Cada HU agrega el suyo.</summary>
-    private enum Vista { Ventas, Leche, Producto, Balance, Danado }
+    private enum Vista { Ventas, Leche, Producto, Balance, Danado, Vacas }
 
     private Vista _vista = Vista.Ventas;
     private DateOnly _desde;
@@ -346,6 +414,10 @@
     private ReporteProductoDiario? _producto;
     private List<ProductoTotal>? _balance;
     private ReporteProductoDanado? _danado;
+    private ReporteVacas? _vacas;
+
+    /// <summary>El mayor promedio: es el 100 % de las barras de la tabla de vacas.</summary>
+    private decimal MaximoVaca => _vacas?.VacaMayor?.PromedioDiario ?? 0;
 
     private bool HayVencidoSinProcesar => _balance?.Any(b => b.VencidoSinProcesar > 0) == true;
     private ApiException? _error;
@@ -420,6 +492,9 @@
                     break;
                 case Vista.Danado:
                     _danado = await Api.ReporteProductoDanadoAsync(_desde, _hasta, _tipo);
+                    break;
+                case Vista.Vacas:
+                    _vacas = await Api.ReporteVacasAsync(_desde, _hasta);
                     break;
             }
         }

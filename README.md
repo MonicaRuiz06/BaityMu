@@ -183,6 +183,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | GET | `/api/reportes/producto-diario?desde=&hasta=` | Queso y yogurt elaborados cada día, con unidad y litros usados (HU-17) · 200, 400 |
 | GET | `/api/reportes/producto-total?fecha=` | Balance de cada producto: producido, vendido, disponible y dañado (HU-18) · 200 |
 | GET | `/api/reportes/producto-danado?desde=&hasta=&tipo=` | Lotes dañados por vencimiento (rango por fecha de vencimiento) y total por producto (HU-19) · 200, 400 |
+| GET | `/api/reportes/vacas?desde=&hasta=` | Promedio del hato, vaca que más y que menos produce, y las que están por debajo del promedio (HU-20) · 200, 400 |
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 
 Los endpoints del negocio (`/api/granja`, `/api/vacas`, `/api/produccion`, `/api/ventas`, `/api/reportes/...`) se agregan con cada historia de usuario.

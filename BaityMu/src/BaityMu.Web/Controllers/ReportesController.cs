@@ -128,5 +128,28 @@ namespace BaityMu.Web.Controllers
             [FromQuery] TipoProducto? tipo,
             CancellationToken ct) =>
             Ok(await _reportes.ProductoDanadoAsync(desde, hasta, tipo, ct));
+
+        /// <summary>Producción de cada vaca: promedio, la mejor, la peor y las que están por debajo (HU-20).</summary>
+        /// <remarks>
+        /// - **promedioDiarioHato**: litros de todo el hato en un día con ordeño.
+        /// - **promedioPorVaca**: litros de una vaca en un día; contra este se compara cada vaca.
+        /// - **porDebajoDelPromedio**: las vacas con menos que promedioPorVaca y su **faltante**.
+        ///
+        /// Si todas producen lo mismo, ninguna queda por debajo. Sin producción en el rango
+        /// responde 200 con vacasEvaluadas = 0.
+        /// </remarks>
+        /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">El reporte (sin vacas evaluadas si no hubo producción).</response>
+        /// <response code="400">'desde' es posterior a 'hasta'.</response>
+        [HttpGet("vacas")]
+        [ProducesResponseType<ReporteVacasResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<ReporteVacasResponse>> Vacas(
+            [FromQuery] DateOnly? desde,
+            [FromQuery] DateOnly? hasta,
+            CancellationToken ct) =>
+            Ok(await _reportes.VacasAsync(desde, hasta, ct));
     }
 }

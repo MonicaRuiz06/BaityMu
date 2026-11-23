@@ -16,5 +16,14 @@ namespace BaityMu.Services.Interfaces
         /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">Una vaca no existe o está retirada (404).</exception>
         /// <exception cref="BaityMu.Domain.Exceptions.ProduccionDuplicadaException">Alguna vaca ya tenía producción ese día (409).</exception>
         Task<ProduccionDiaria> RegistrarAsync(RegistrarProduccionRequest request, CancellationToken ct = default);
+
+        /// <summary>
+        /// Consulta la producción de un día: lo que dio cada vaca, el total, lo ya
+        /// transformado y lo disponible (HU-08).
+        /// </summary>
+        /// <param name="fecha">Día a consultar.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">Ese día no hubo producción (404).</exception>
+        Task<ProduccionDiaria> ObtenerAsync(DateOnly fecha, CancellationToken ct = default);
     }
 }

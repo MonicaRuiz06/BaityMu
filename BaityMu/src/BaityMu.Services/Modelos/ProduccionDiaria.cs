@@ -6,10 +6,20 @@
     /// </summary>
     /// <param name="Fecha">Día del ordeño.</param>
     /// <param name="Vacas">Lo que dio cada vaca, ordenado por Id.</param>
-    public sealed record ProduccionDiaria(DateOnly Fecha, IReadOnlyList<ProduccionDeVaca> Vacas)
+    /// <param name="LitrosTransformados">Litros de ese día ya convertidos en queso o yogurt (HU-09).</param>
+    public sealed record ProduccionDiaria(
+        DateOnly Fecha,
+        IReadOnlyList<ProduccionDeVaca> Vacas,
+        decimal LitrosTransformados = 0)
     {
         /// <summary>Total del día. En el escenario de referencia: 10 × 15 = 150 L.</summary>
         public decimal TotalLitros => Vacas.Sum(v => v.Litros);
+
+        /// <summary>
+        /// Litros que todavía se pueden transformar: total − transformados. Por ejemplo,
+        /// si de 150 L se transformaron 100 L, quedan 50 L (RN-02).
+        /// </summary>
+        public decimal LitrosDisponibles => TotalLitros - LitrosTransformados;
     }
 
     /// <summary>Litros que dio una vaca en el día.</summary>

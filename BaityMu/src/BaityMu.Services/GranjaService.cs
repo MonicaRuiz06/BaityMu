@@ -41,6 +41,39 @@ namespace BaityMu.Services
         public Task<Granja> ObtenerAsync(CancellationToken ct = default) => ObtenerGranjaAsync(ct);
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Todos los cambios se guardan juntos con un solo SaveChangesAsync. Si cualquier
+        /// valor es inválido, el dominio lanza la excepción antes de llegar a guardar, así
+        /// que la base de datos queda como estaba (criterio 2: "nada cambia").
+        /// </remarks>
+        public async Task<Granja> ActualizarAsync(ActualizarGranjaRequest request, CancellationToken ct = default)
+        {
+            var repetido = request.Productos
+                .GroupBy(p => p.TipoProducto)
+                .FirstOrDefault(g => g.Count() > 1);
+            if (repetido is not null)
+                throw new ReglaDeNegocioException($"El producto {repetido.Key} viene más de una vez.");
+
+            var granja = await ObtenerGranjaAsync(ct);
+
+            if (request.LitrosPorVaca is decimal litrosPorVaca)
+                granja.ActualizarLitrosPorVaca(litrosPorVaca);
+
+            foreach (var producto in request.Productos)
+            {
+                granja.ConfigurarProducto(
+                    producto.TipoProducto,
+                    producto.Unidad,
+                    producto.LitrosPorUnidad,
+                    producto.VidaUtilDias,
+                    producto.PrecioUnitario);
+            }
+
+            await _unitOfWork.SaveChangesAsync(ct);
+            return granja;
+        }
+
+        /// <inheritdoc />
         public async Task<Vaca> AgregarVacaAsync(CrearVacaRequest request, CancellationToken ct = default)
         {
             var granja = await ObtenerGranjaAsync(ct);

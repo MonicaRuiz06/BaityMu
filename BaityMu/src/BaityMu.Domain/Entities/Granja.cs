@@ -66,6 +66,42 @@ namespace BaityMu.Domain.Entities
             return producto;
         }
 
+        /// <summary>Cambia l, los litros que da cada vaca por día (HU-06).</summary>
+        /// <exception cref="ReglaDeNegocioException">Si l es 0 o negativo (400).</exception>
+        public void ActualizarLitrosPorVaca(decimal litrosPorVaca)
+        {
+            if (litrosPorVaca <= 0)
+                throw new ReglaDeNegocioException("Los litros por vaca deben ser mayores a cero.");
+
+            LitrosPorVaca = litrosPorVaca;
+        }
+
+        /// <summary>
+        /// Configura un producto (HU-06): si ya existe, actualiza sus parámetros; si no,
+        /// lo agrega.
+        /// </summary>
+        /// <param name="tipoProducto">Queso o Yogurt.</param>
+        /// <param name="unidad">Unidad de venta. Si es null se conserva la actual.</param>
+        /// <param name="litrosPorUnidad">Rendimiento. Mayor que 0.</param>
+        /// <param name="vidaUtilDias">Vida útil en días. Mayor que 0.</param>
+        /// <param name="precioUnitario">Precio por unidad. 0 o más.</param>
+        /// <returns>Los parámetros del producto ya actualizados.</returns>
+        /// <exception cref="ReglaDeNegocioException">Si algún valor no es válido (400).</exception>
+        public ParametroProducto ConfigurarProducto(
+            TipoProducto tipoProducto,
+            string? unidad,
+            decimal litrosPorUnidad,
+            int vidaUtilDias,
+            decimal precioUnitario)
+        {
+            var producto = _productos.FirstOrDefault(p => p.TipoProducto == tipoProducto);
+            if (producto is null)
+                return AgregarProducto(tipoProducto, unidad ?? string.Empty, litrosPorUnidad, vidaUtilDias, precioUnitario);
+
+            producto.Actualizar(unidad ?? producto.Unidad, litrosPorUnidad, vidaUtilDias, precioUnitario);
+            return producto;
+        }
+
         /// <summary>Busca los parámetros de un producto.</summary>
         /// <exception cref="RecursoNoEncontradoException">Si el producto no está configurado (404).</exception>
         public ParametroProducto ObtenerProducto(TipoProducto tipoProducto) =>

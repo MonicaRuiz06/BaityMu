@@ -1,4 +1,4 @@
-using BaityMu.Domain.Enums;
+﻿using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 
 namespace BaityMu.Domain.Entities
@@ -10,7 +10,7 @@ namespace BaityMu.Domain.Entities
     /// <remarks>
     /// Ejemplo del taller: el queso usa 10 L por kg, dura 30 días y vale 28 000 por kg;
     /// el yogurt usa 1 L por litro y dura 15 días. Los valores iniciales salen de
-    /// appsettings.json (RNF-09) y se cambian con la HU-06.
+    /// appsettings.json (RNF-09) y se cambian con PUT /api/granja (HU-06).
     /// </remarks>
     public class ParametroProducto
     {
@@ -50,19 +50,33 @@ namespace BaityMu.Domain.Entities
             if (!Enum.IsDefined(tipoProducto))
                 throw new ReglaDeNegocioException("El tipo de producto debe ser Queso o Yogurt.");
 
+            TipoProducto = tipoProducto;
+            Actualizar(unidad, litrosPorUnidad, vidaUtilDias, precioUnitario);
+        }
+
+        /// <summary>
+        /// Cambia los parámetros del producto (HU-06). Primero valida todo y solo después
+        /// asigna: si un valor es inválido, no cambia nada.
+        /// </summary>
+        /// <remarks>
+        /// Los lotes y ventas que ya existen no se ven afectados: cada lote guarda su propia
+        /// fecha de vencimiento y cada venta su propio precio cuando se crean (criterio 3).
+        /// </remarks>
+        /// <exception cref="ReglaDeNegocioException">Si algún valor no es válido.</exception>
+        internal void Actualizar(string unidad, decimal litrosPorUnidad, int vidaUtilDias, decimal precioUnitario)
+        {
             if (string.IsNullOrWhiteSpace(unidad))
-                throw new ReglaDeNegocioException($"La unidad del {tipoProducto} es obligatoria.");
+                throw new ReglaDeNegocioException($"La unidad del {TipoProducto} es obligatoria.");
 
             if (litrosPorUnidad <= 0)
-                throw new ReglaDeNegocioException($"Los litros por unidad del {tipoProducto} deben ser mayores a cero.");
+                throw new ReglaDeNegocioException($"Los litros por unidad del {TipoProducto} deben ser mayores a cero.");
 
             if (vidaUtilDias <= 0)
-                throw new ReglaDeNegocioException($"La vida útil del {tipoProducto} debe ser mayor a cero días.");
+                throw new ReglaDeNegocioException($"La vida útil del {TipoProducto} debe ser mayor a cero días.");
 
             if (precioUnitario < 0)
-                throw new ReglaDeNegocioException($"El precio del {tipoProducto} no puede ser negativo.");
+                throw new ReglaDeNegocioException($"El precio del {TipoProducto} no puede ser negativo.");
 
-            TipoProducto = tipoProducto;
             Unidad = unidad.Trim();
             LitrosPorUnidad = litrosPorUnidad;
             VidaUtilDias = vidaUtilDias;

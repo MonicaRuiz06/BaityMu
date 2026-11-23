@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 
@@ -75,6 +75,75 @@ namespace BaityMu.Tests
         {
             Assert.Throws<RecursoNoEncontradoException>(() =>
                 _granja.ObtenerProducto(TipoProducto.Queso));
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-06 Actualizar la configuración de la granja
+        // ----------------------------------------------------------------------------
+
+        [Test]
+        public void ActualizarLitrosPorVaca_ConValorValido_CambiaLaProduccionEsperada()
+        {
+            // Arrange: 10 vacas
+            for (var i = 0; i < 10; i++)
+                _granja.AgregarVaca("Holstein", null, _fecha);
+
+            // Act
+            _granja.ActualizarLitrosPorVaca(16m);
+
+            // Assert: 10 × 16 = 160
+            Assert.That(_granja.ProduccionDiariaEsperada, Is.EqualTo(160m));
+        }
+
+        [TestCase(0)]
+        [TestCase(-5)]
+        public void ActualizarLitrosPorVaca_MenorOIgualACero_LanzaReglaDeNegocioYNoCambia(decimal litros)
+        {
+            Assert.Throws<ReglaDeNegocioException>(() => _granja.ActualizarLitrosPorVaca(litros));
+            Assert.That(_granja.LitrosPorVaca, Is.EqualTo(15m));
+        }
+
+        [Test]
+        public void ConfigurarProducto_Existente_ActualizaSusParametros()
+        {
+            // Arrange
+            _granja.AgregarProducto(TipoProducto.Yogurt, "L", 1m, 15, 6000m);
+
+            // Act: sin unidad, se conserva "L"
+            _granja.ConfigurarProducto(TipoProducto.Yogurt, null, 1.2m, 20, 6500m);
+
+            // Assert
+            var yogurt = _granja.ObtenerProducto(TipoProducto.Yogurt);
+            Assert.That(yogurt.Unidad, Is.EqualTo("L"));
+            Assert.That(yogurt.LitrosPorUnidad, Is.EqualTo(1.2m));
+            Assert.That(yogurt.VidaUtilDias, Is.EqualTo(20));
+            Assert.That(yogurt.PrecioUnitario, Is.EqualTo(6500m));
+        }
+
+        [Test]
+        public void ConfigurarProducto_ConValorInvalido_NoCambiaNingunValor()
+        {
+            // Arrange
+            _granja.AgregarProducto(TipoProducto.Queso, "kg", 10m, 30, 28000m);
+
+            // Act: el rendimiento es válido, pero la vida útil no
+            Assert.Throws<ReglaDeNegocioException>(() =>
+                _granja.ConfigurarProducto(TipoProducto.Queso, "kg", 12m, 0, 30000m));
+
+            // Assert: no quedó a medio cambiar
+            var queso = _granja.ObtenerProducto(TipoProducto.Queso);
+            Assert.That(queso.LitrosPorUnidad, Is.EqualTo(10m));
+            Assert.That(queso.PrecioUnitario, Is.EqualTo(28000m));
+        }
+
+        [Test]
+        public void ConfigurarProducto_NoExistente_LoAgrega()
+        {
+            // Act
+            _granja.ConfigurarProducto(TipoProducto.Queso, "kg", 10m, 30, 28000m);
+
+            // Assert
+            Assert.That(_granja.Productos, Has.Count.EqualTo(1));
         }
     }
 }

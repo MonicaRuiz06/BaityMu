@@ -1,4 +1,5 @@
 ﻿using BaityMu.Domain.Entities;
+using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Domain.Interfaces;
 using BaityMu.Services.Dtos;
@@ -56,6 +57,24 @@ namespace BaityMu.Services
             await _ventas.AgregarAsync(venta, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return venta;
+        }
+
+        /// <inheritdoc />
+        public async Task<Venta> ObtenerAsync(int id, CancellationToken ct = default) =>
+            await _ventas.ObtenerConDetallesAsync(id, ct)
+                ?? throw new RecursoNoEncontradoException("una venta", id);
+
+        /// <inheritdoc />
+        public Task<IReadOnlyList<Venta>> ListarAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            TipoProducto? tipoProducto,
+            CancellationToken ct = default)
+        {
+            if (desde > hasta)
+                throw new ReglaDeNegocioException("La fecha 'desde' no puede ser posterior a 'hasta'.");
+
+            return _ventas.ListarAsync(desde, hasta, tipoProducto, ct);
         }
     }
 }

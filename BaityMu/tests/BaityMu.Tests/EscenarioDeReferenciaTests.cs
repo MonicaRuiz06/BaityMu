@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Infrastructure.Data;
@@ -177,6 +177,76 @@ namespace BaityMu.Tests
 
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _ventas.RegistrarVentaAsync(new() { TipoProducto = TipoProducto.Yogurt, Cantidad = 1m }));
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-14 Consultar ventas
+        // ----------------------------------------------------------------------------
+
+        /// <summary>Días 1 a 3 del escenario: Q1, Y1, Q2 y las dos ventas del día 3.</summary>
+        private async Task<(Venta Queso, Venta Yogurt)> HastaElDia3Async()
+        {
+            await _produccion.RegistrarAsync(new RegistrarProduccionRequest());
+            NuevaPeticion();
+            await _produccion.TransformarAsync(new() { TipoProducto = TipoProducto.Queso, Litros = 100m });
+            await _produccion.TransformarAsync(new() { TipoProducto = TipoProducto.Yogurt, Litros = 50m });
+            NuevaPeticion();
+            _reloj.AvanzarDias(1);
+            await _produccion.RegistrarAsync(new RegistrarProduccionRequest());
+            NuevaPeticion();
+            await _produccion.TransformarAsync(new() { TipoProducto = TipoProducto.Queso, Litros = 150m });
+            NuevaPeticion();
+            _reloj.AvanzarDias(1);
+            var queso = await _ventas.RegistrarVentaAsync(new() { TipoProducto = TipoProducto.Queso, Cantidad = 12m });
+            NuevaPeticion();
+            var yogurt = await _ventas.RegistrarVentaAsync(new() { TipoProducto = TipoProducto.Yogurt, Cantidad = 20m });
+            NuevaPeticion();
+            return (queso, yogurt);
+        }
+
+        [Test]
+        public async Task ObtenerVenta_TraeSusDetallesConLaFechaDeCadaLote()
+        {
+            var (queso, _) = await HastaElDia3Async();
+
+            var venta = await _ventas.ObtenerAsync(queso.Id);
+
+            Assert.That(venta.Cantidad, Is.EqualTo(12m));
+            Assert.That(venta.Detalles.Select(d => (d.Lote.FechaProduccion, d.Cantidad)),
+                Is.EqualTo(new[] { (new DateOnly(2026, 12, 1), 10m), (new DateOnly(2026, 12, 2), 2m) }));
+        }
+
+        [Test]
+        public void ObtenerVenta_IdInexistente_LanzaNoEncontrado()
+        {
+            Assert.ThrowsAsync<RecursoNoEncontradoException>(() => _ventas.ObtenerAsync(999));
+        }
+
+        [Test]
+        public async Task ListarVentas_FiltrandoPorProducto_SoloTraeEseProducto()
+        {
+            var (_, yogurt) = await HastaElDia3Async();
+
+            var ventas = await _ventas.ListarAsync(null, null, TipoProducto.Yogurt);
+
+            Assert.That(ventas.Select(v => v.Id), Is.EqualTo(new[] { yogurt.Id }));
+        }
+
+        [Test]
+        public async Task ListarVentas_FiltrandoPorFechas_SoloTraeEseRango()
+        {
+            await HastaElDia3Async();
+            var dia3 = new DateOnly(2026, 12, 3);
+
+            Assert.That(await _ventas.ListarAsync(dia3, dia3, null), Has.Count.EqualTo(2));
+            Assert.That(await _ventas.ListarAsync(new DateOnly(2026, 12, 4), null, null), Is.Empty);
+        }
+
+        [Test]
+        public void ListarVentas_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _ventas.ListarAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
         }
     }
 }

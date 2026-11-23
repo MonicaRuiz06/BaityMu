@@ -95,6 +95,14 @@ public sealed class BaityMuApi(HttpClient http)
 
     public Task<Venta> RegistrarVentaAsync(NuevaVenta datos) => SendAsync<Venta>(HttpMethod.Post, "api/ventas", datos);
 
+    public Task<List<Venta>> ListarVentasAsync(DateOnly desde, DateOnly hasta, TipoProducto? tipo = null)
+    {
+        var url = $"api/ventas?desde={F(desde)}&hasta={F(hasta)}";
+        if (tipo is not null)
+            url += $"&tipo={tipo}";
+        return GetAsync<List<Venta>>(url);
+    }
+
     // ------------------------------------------------------------------ Plomería
 
     private async Task<T> GetAsync<T>(string url)

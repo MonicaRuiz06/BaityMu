@@ -195,3 +195,33 @@ public sealed class ResumenInventario
     public decimal CantidadVencidaSinProcesar { get; set; }
     public decimal CantidadDañada { get; set; }
 }
+
+// ---------------------------------------------------------------- Reportes (Épica 6)
+
+public sealed class ReporteVentas
+{
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public TipoProducto? TipoProducto { get; set; }
+    public List<VentaDelReporte> Ventas { get; set; } = new();
+    public List<TotalVentasProducto> TotalesPorProducto { get; set; } = new();
+    public decimal TotalGeneral { get; set; }
+}
+
+public sealed class VentaDelReporte
+{
+    public int Id { get; set; }
+    public DateOnly Fecha { get; set; }
+    public TipoProducto TipoProducto { get; set; }
+    public decimal Cantidad { get; set; }
+    public decimal PrecioUnitario { get; set; }
+    public decimal Total { get; set; }
+}
+
+public sealed class TotalVentasProducto
+{
+    public TipoProducto TipoProducto { get; set; }
+    public int NumeroVentas { get; set; }
+    public decimal Cantidad { get; set; }
+    public decimal Total { get; set; }
+}

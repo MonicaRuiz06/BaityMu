@@ -100,5 +100,21 @@ namespace BaityMu.Domain.Entities
         /// El mismo día del vencimiento todavía se puede vender.
         /// </summary>
         public bool EstaVencido(DateOnly fecha) => fecha > FechaVencimiento;
+
+        /// <summary>Estado del lote en una fecha (HU-10).</summary>
+        /// <param name="fecha">Día de la consulta.</param>
+        /// <returns>
+        /// - Con existencias: <see cref="EstadoLote.Vencido"/> si pasó su vencimiento, o
+        ///   <see cref="EstadoLote.Disponible"/> si no.
+        /// - Sin existencias: <see cref="EstadoLote.Dañado"/> si algo se perdió por
+        ///   vencimiento, o <see cref="EstadoLote.Agotado"/> si se vendió todo.
+        /// </returns>
+        public EstadoLote ObtenerEstado(DateOnly fecha)
+        {
+            if (CantidadDisponible > 0)
+                return EstaVencido(fecha) ? EstadoLote.Vencido : EstadoLote.Disponible;
+
+            return CantidadDanada > 0 ? EstadoLote.Dañado : EstadoLote.Agotado;
+        }
     }
 }

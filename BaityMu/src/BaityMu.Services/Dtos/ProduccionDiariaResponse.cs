@@ -9,6 +9,12 @@
         /// <summary>Litros de leche del día: la suma de todas las vacas.</summary>
         public decimal TotalLitros { get; set; }
 
+        /// <summary>Litros de ese día ya convertidos en queso o yogurt.</summary>
+        public decimal LitrosTransformados { get; set; }
+
+        /// <summary>Litros que todavía se pueden transformar (total − transformados).</summary>
+        public decimal LitrosDisponibles { get; set; }
+
         /// <summary>Lo que dio cada vaca.</summary>
         public List<ProduccionVacaDiaResponse> Vacas { get; set; } = new();
     }

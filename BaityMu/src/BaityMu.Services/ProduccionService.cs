@@ -57,18 +57,36 @@ namespace BaityMu.Services
             return ArmarResultado(fecha, nuevas, granja);
         }
 
+        /// <inheritdoc />
+        public async Task<ProduccionDiaria> ObtenerAsync(DateOnly fecha, CancellationToken ct = default)
+        {
+            var producciones = await _producciones.ListarPorFechaAsync(fecha, ct);
+            if (producciones.Count == 0)
+                throw new RecursoNoEncontradoException($"No hay producción registrada el {fecha:yyyy-MM-dd}.");
+
+            var granja = await _granjas.ObtenerCompletaAsync(ct)
+                ?? throw new RecursoNoEncontradoException("La granja no está configurada.");
+
+            // Los litros transformados salen de los lotes, que llegan con la HU-09
+            // (ILoteRepository.LitrosTransformadosAsync). Mientras tanto son 0.
+            const decimal litrosTransformados = 0;
+
+            return ArmarResultado(fecha, producciones, granja, litrosTransformados);
+        }
+
         /// <summary>Junta cada registro con el nombre de su vaca.</summary>
         private static ProduccionDiaria ArmarResultado(
             DateOnly fecha,
             IEnumerable<ProduccionLeche> producciones,
-            Granja granja)
+            Granja granja,
+            decimal litrosTransformados = 0)
         {
             var nombres = granja.Vacas.ToDictionary(v => v.Id, v => v.Nombre);
             var vacas = producciones
                 .OrderBy(p => p.VacaId)
                 .Select(p => new ProduccionDeVaca(p.VacaId, nombres[p.VacaId], p.Litros))
                 .ToList();
-            return new ProduccionDiaria(fecha, vacas);
+            return new ProduccionDiaria(fecha, vacas, litrosTransformados);
         }
     }
 }

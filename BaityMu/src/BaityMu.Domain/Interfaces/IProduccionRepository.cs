@@ -24,6 +24,10 @@ namespace BaityMu.Domain.Interfaces
         /// <returns>Los ordeños de la vaca. Lista vacía si nunca se ha ordeñado.</returns>
         Task<IReadOnlyList<ProduccionLeche>> ListarPorVacaAsync(int vacaId, CancellationToken ct = default);
 
+        /// <summary>Todos los ordeños de una fecha, ordenados por vaca (HU-08).</summary>
+        /// <returns>Lista vacía si ese día no hubo producción.</returns>
+        Task<IReadOnlyList<ProduccionLeche>> ListarPorFechaAsync(DateOnly fecha, CancellationToken ct = default);
+
         /// <summary>Ids de las vacas que ya tienen producción en una fecha (HU-07, RN-01).</summary>
         Task<IReadOnlySet<int>> VacasConProduccionAsync(DateOnly fecha, CancellationToken ct = default);
 

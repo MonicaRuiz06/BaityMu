@@ -28,6 +28,15 @@ namespace BaityMu.Infrastructure.Repositories
                 .ToDictionaryAsync(x => x.VacaId, x => x.Litros, ct);
 
         /// <inheritdoc />
+        /// <remarks>Usa el índice por Fecha de la tabla, creado para esta consulta.</remarks>
+        public async Task<IReadOnlyList<ProduccionLeche>> ListarPorFechaAsync(DateOnly fecha, CancellationToken ct = default) =>
+            await Db.ProduccionesLeche
+                .AsNoTracking()
+                .Where(p => p.Fecha == fecha)
+                .OrderBy(p => p.VacaId)
+                .ToListAsync(ct);
+
+        /// <inheritdoc />
         public async Task<IReadOnlySet<int>> VacasConProduccionAsync(DateOnly fecha, CancellationToken ct = default) =>
             (await Db.ProduccionesLeche
                 .Where(p => p.Fecha == fecha)

@@ -1,9 +1,10 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Infrastructure.Data;
 using BaityMu.Infrastructure.Repositories;
 using BaityMu.Services;
 using BaityMu.Services.Dtos;
+using BaityMu.Services.Modelos;
 using BaityMu.Tests.Fakes;
 using BaityMu.Tests.Infraestructura;
 using Microsoft.EntityFrameworkCore;
@@ -190,6 +191,68 @@ namespace BaityMu.Tests
                 Fecha = Dia1,
                 Vacas = { new() { VacaId = 1, Litros = 15m }, new() { VacaId = 1, Litros = 10m } }
             }));
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-08 Consultar la producción de un día
+        // ----------------------------------------------------------------------------
+
+        [Test]
+        public async Task ObtenerAsync_ConProduccion_DevuelveCadaVacaYElTotal()
+        {
+            // Arrange
+            await _servicio.RegistrarAsync(new RegistrarProduccionRequest { Fecha = Dia1 });
+            _db.ChangeTracker.Clear();
+
+            // Act
+            var produccion = await _servicio.ObtenerAsync(Dia1);
+
+            // Assert
+            Assert.That(produccion.Vacas, Has.Count.EqualTo(10));
+            Assert.That(produccion.Vacas[0].Nombre, Is.EqualTo("BaityCow"));
+            Assert.That(produccion.TotalLitros, Is.EqualTo(150m));
+            Assert.That(produccion.LitrosTransformados, Is.EqualTo(0m));
+            Assert.That(produccion.LitrosDisponibles, Is.EqualTo(150m));
+        }
+
+        [Test]
+        public async Task ObtenerAsync_SoloTraeLaFechaPedida()
+        {
+            // Arrange: días 1 y 2
+            await _servicio.RegistrarAsync(new RegistrarProduccionRequest { Fecha = Dia1 });
+            await _servicio.RegistrarAsync(new RegistrarProduccionRequest
+            {
+                Fecha = Dia1.AddDays(1),
+                Vacas = { new() { VacaId = 1, Litros = 20m } }
+            });
+
+            // Act
+            var dia2 = await _servicio.ObtenerAsync(Dia1.AddDays(1));
+
+            // Assert
+            Assert.That(dia2.TotalLitros, Is.EqualTo(20m));
+        }
+
+        [Test]
+        public void ObtenerAsync_SinProduccion_LanzaNoEncontrado()
+        {
+            Assert.ThrowsAsync<RecursoNoEncontradoException>(() => _servicio.ObtenerAsync(Dia1));
+        }
+
+        [Test]
+        public void ProduccionDiaria_DespuesDeTransformar100De150_Quedan50Disponibles()
+        {
+            // Arrange: prueba de la tarea de la HU-08. Los 100 L transformados vendrán de
+            // los lotes en la HU-09; aquí se prueba el cálculo.
+            var vacas = Enumerable.Range(1, 10)
+                .Select(i => new ProduccionDeVaca(i, $"Vaca {i}", 15m))
+                .ToList();
+
+            // Act
+            var produccion = new ProduccionDiaria(Dia1, vacas, LitrosTransformados: 100m);
+
+            // Assert
+            Assert.That(produccion.LitrosDisponibles, Is.EqualTo(50m));
         }
     }
 }

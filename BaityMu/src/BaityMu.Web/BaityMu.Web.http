@@ -122,4 +122,58 @@ Content-Type: application/json
   ]
 }
 
+### HU-07 Escenario día 1: registrar la producción (n × l = 150 L) → 201
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01"
+}
+
+### HU-07 Registrar otra vez el día 1 → 409 (RN-01)
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-01"
+}
+
+### HU-07 Escenario día 2 → 201
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-12-02"
+}
+
+### HU-07 Litros específicos para algunas vacas → 201
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-11-30",
+  "vacas": [
+    { "vacaId": 1, "litros": 14.5 },
+    { "vacaId": 2, "litros": 16 }
+  ]
+}
+
+### HU-07 Litros negativos → 400
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-11-29",
+  "vacas": [ { "vacaId": 1, "litros": -3 } ]
+}
+
+### HU-07 Vaca inexistente → 404
+POST {{BaityMu.Web_HostAddress}}/api/produccion
+Content-Type: application/json
+
+{
+  "fecha": "2026-11-29",
+  "vacas": [ { "vacaId": 999, "litros": 15 } ]
+}
+
 ###

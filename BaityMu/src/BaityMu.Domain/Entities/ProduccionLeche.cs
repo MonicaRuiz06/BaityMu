@@ -1,4 +1,4 @@
-using BaityMu.Domain.Exceptions;
+﻿using BaityMu.Domain.Exceptions;
 
 namespace BaityMu.Domain.Entities
 {
@@ -7,8 +7,8 @@ namespace BaityMu.Domain.Entities
     /// (criterio 5 de la HU-01): cada fila es un ordeño de una vaca en una fecha.
     /// </summary>
     /// <remarks>
-    /// Se crea en la HU-02 porque el listado de vacas muestra cuántos litros ha dado cada
-    /// una. El registro diario (n × l, sin duplicados por fecha, RN-01) llega en la HU-07.
+    /// Se creó en la HU-02 para el listado de vacas. Los registros diarios los genera
+    /// <see cref="Granja.GenerarProduccionDiaria"/> (HU-07, RN-01).
     /// </remarks>
     public class ProduccionLeche
     {

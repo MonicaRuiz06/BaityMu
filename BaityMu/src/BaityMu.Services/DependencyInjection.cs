@@ -30,6 +30,7 @@ namespace BaityMu.Services
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
             services.AddScoped<IGranjaService, GranjaService>();
+            services.AddScoped<IProduccionService, ProduccionService>();
 
             return services;
         }

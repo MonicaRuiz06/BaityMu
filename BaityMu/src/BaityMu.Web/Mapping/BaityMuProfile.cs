@@ -34,6 +34,10 @@ namespace BaityMu.Web.Mapping
             CreateMap<Granja, GranjaResponse>();
             CreateMap<ParametroProducto, ParametroProductoResponse>();
 
+            // HU-07: la producción de un día.
+            CreateMap<ProduccionDiaria, ProduccionDiariaResponse>();
+            CreateMap<ProduccionDeVaca, ProduccionVacaDiaResponse>();
+
             // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
             // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:
             // queda en 0 hasta que la HU-07 registre la producción.

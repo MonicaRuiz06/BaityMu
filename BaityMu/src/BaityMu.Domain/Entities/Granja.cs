@@ -136,6 +136,60 @@ namespace BaityMu.Domain.Entities
             return vaca;
         }
 
+        /// <summary>
+        /// Genera la producción de leche de un día (HU-07). Es la prueba mínima del taller:
+        /// la producción diaria es n × l y no se registra dos veces la misma fecha (RN-01).
+        /// </summary>
+        /// <param name="fecha">Día del ordeño.</param>
+        /// <param name="litrosEspecificos">
+        /// Litros por vaca (VacaId → litros). Si viene vacío, cada vaca activa da l litros
+        /// y el total es n × l. Si trae datos, solo se registran esas vacas con esos litros.
+        /// </param>
+        /// <param name="vacasConProduccionEseDia">Ids de las vacas que ya tienen registro en esa fecha.</param>
+        /// <returns>Los registros nuevos, uno por vaca. Todavía no están guardados.</returns>
+        /// <exception cref="RecursoNoEncontradoException">Una vaca no existe o está retirada (404).</exception>
+        /// <exception cref="ReglaDeNegocioException">Litros negativos (400).</exception>
+        /// <exception cref="ProduccionDuplicadaException">Alguna vaca ya tenía producción ese día (409).</exception>
+        /// <remarks>
+        /// Primero valida todo y luego crea los registros: si una sola vaca falla, no se
+        /// registra ninguna (criterio 4: "no se guarda nada").
+        /// </remarks>
+        public IReadOnlyList<ProduccionLeche> GenerarProduccionDiaria(
+            DateOnly fecha,
+            IReadOnlyDictionary<int, decimal> litrosEspecificos,
+            IReadOnlySet<int> vacasConProduccionEseDia)
+        {
+            var vacasActivas = _vacas.Where(v => v.Activa).ToList();
+
+            // Qué vaca da cuántos litros.
+            List<(Vaca Vaca, decimal Litros)> ordenos;
+            if (litrosEspecificos.Count == 0)
+            {
+                ordenos = vacasActivas.Select(v => (v, LitrosPorVaca)).ToList();
+            }
+            else
+            {
+                ordenos = new();
+                foreach (var (vacaId, litros) in litrosEspecificos)
+                {
+                    var vaca = vacasActivas.FirstOrDefault(v => v.Id == vacaId)
+                        ?? throw new RecursoNoEncontradoException(
+                            $"No existe una vaca activa con id {vacaId}. No se puede registrar su producción.");
+                    ordenos.Add((vaca, litros));
+                }
+            }
+
+            var repetidas = ordenos.Where(o => vacasConProduccionEseDia.Contains(o.Vaca.Id)).ToList();
+            if (repetidas.Count > 0)
+                throw new ProduccionDuplicadaException(fecha, repetidas.Select(o => o.Vaca.Nombre));
+
+            // El constructor de ProduccionLeche rechaza los litros negativos. Como se valida
+            // todo antes de devolver, si una falla no queda ninguna a medias.
+            return ordenos
+                .Select(o => new ProduccionLeche(o.Vaca.Id, fecha, o.Litros))
+                .ToList();
+        }
+
         /// <summary>Retira una vaca del hato (HU-04). n disminuye en 1 y su historial se conserva.</summary>
         /// <param name="vacaId">Id de la vaca.</param>
         /// <returns>La vaca retirada.</returns>

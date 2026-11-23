@@ -1,0 +1,162 @@
+@page "/reportes"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Reportes · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityGerente</span>
+        <h1>Reportes</h1>
+        <p>Elige el período y el reporte. Las fechas empiezan en el mes del día de trabajo.</p>
+    </div>
+</div>
+
+<section class="panel">
+    <div class="campos-fila">
+        <label class="campo">
+            <span>Desde</span>
+            <input type="date" @bind="_desde" @bind:after="CargarAsync" />
+        </label>
+        <label class="campo">
+            <span>Hasta</span>
+            <input type="date" @bind="_hasta" @bind:after="CargarAsync" />
+        </label>
+        <div class="campo">
+            <span>Producto</span>
+            <div class="pestanas" role="tablist">
+                <button type="button" class="@(_tipo is null ? "activa" : "")" @onclick="() => FiltrarAsync(null)">Todos</button>
+                <button type="button" class="@(_tipo == TipoProducto.Queso ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Queso)">🧀 Queso</button>
+                <button type="button" class="@(_tipo == TipoProducto.Yogurt ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Yogurt)">🥣 Yogurt</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="seccion">
+    <div class="barra-herramientas">
+        <div class="pestanas" role="tablist" aria-label="Reporte">
+            <button type="button" class="activa">🛒 Ventas</button>
+            <button type="button" disabled title="Llega con la HU-16">🥛 Leche por día</button>
+            <button type="button" disabled title="Llega con la HU-17">🧀 Producto por día</button>
+            <button type="button" disabled title="Llega con la HU-18">⚖️ Balance</button>
+            <button type="button" disabled title="Llega con la HU-19">🗑️ Dañado</button>
+            <button type="button" disabled title="Llega con la HU-20">🐄 Vacas</button>
+        </div>
+    </div>
+
+    @if (_error is not null)
+    {
+        <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+    }
+    else if (_ventas is null)
+    {
+        <Cargando />
+    }
+    else
+    {
+        <div class="grilla grilla-3">
+            <Metrica Etiqueta="Total vendido" Valor="@Formato.Pesos(_ventas.TotalGeneral)"
+                     Nota="@($"{TextoVentas(_ventas.Ventas.Count)} en el período")" Destacada="true" />
+            @foreach (var tipo in Productos)
+            {
+                var t = _ventas.TotalesPorProducto.FirstOrDefault(x => x.TipoProducto == tipo);
+                <Metrica Etiqueta="@($"{(tipo == TipoProducto.Queso ? "🧀" : "🥣")} {tipo}")"
+                         Valor="@Formato.Pesos(t?.Total ?? 0)"
+                         Nota="@($"{Formato.ConUnidad(t?.Cantidad ?? 0, tipo)} · {TextoVentas(t?.NumeroVentas ?? 0)}")" />
+            }
+        </div>
+
+        @if (_ventas.Ventas.Count == 0)
+        {
+            <div class="panel vacio" style="margin-top:16px">
+                <span class="vacio-icono">🧾</span>
+                <p>No hubo ventas entre el @Formato.Fecha(_desde) y el @Formato.Fecha(_hasta).</p>
+            </div>
+        }
+        else
+        {
+            <div class="tabla-envoltura" style="margin-top:16px">
+                <table>
+                    <thead>
+                        <tr><th>Venta</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Total</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var v in _ventas.Ventas)
+                        {
+                            <tr>
+                                <td>#@v.Id</td>
+                                <td>@Formato.Fecha(v.Fecha)</td>
+                                <td><span class="insignia insignia-@v.TipoProducto.ToString().ToLowerInvariant()">@v.TipoProducto</span></td>
+                                <td class="num">@Formato.ConUnidad(v.Cantidad, v.TipoProducto)</td>
+                                <td class="num">@Formato.Pesos(v.PrecioUnitario)</td>
+                                <td class="num">@Formato.Pesos(v.Total)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><th colspan="5">Total general</th><th class="num">@Formato.Pesos(_ventas.TotalGeneral)</th></tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    }
+</section>
+
+@code {
+    private DateOnly _desde;
+    private DateOnly _hasta;
+    private TipoProducto? _tipo;
+    private ReporteVentas? _ventas;
+    private ApiException? _error;
+
+    private static string TextoVentas(int n) => n == 1 ? "1 venta" : $"{n} ventas";
+
+    /// <summary>Con filtro de producto solo se muestra esa tarjeta.</summary>
+    private IEnumerable<TipoProducto> Productos =>
+        _tipo is { } t ? new[] { t } : new[] { TipoProducto.Queso, TipoProducto.Yogurt };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        UsarMesDelDia();
+        await CargarAsync();
+    }
+
+    /// <summary>Por defecto: del 1 al último día del mes del día de trabajo.</summary>
+    private void UsarMesDelDia()
+    {
+        _desde = new DateOnly(Estado.Dia.Year, Estado.Dia.Month, 1);
+        _hasta = _desde.AddMonths(1).AddDays(-1);
+    }
+
+    private async void AlCambiarDia()
+    {
+        UsarMesDelDia();
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+
+    private async Task FiltrarAsync(TipoProducto? tipo)
+    {
+        _tipo = tipo;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            _ventas = await Api.ReporteVentasAsync(_desde, _hasta, _tipo);
+        }
+        catch (ApiException e)
+        {
+            // Rango al revés: la API responde 400 y se muestra su mensaje.
+            _error = e;
+        }
+    }
+}

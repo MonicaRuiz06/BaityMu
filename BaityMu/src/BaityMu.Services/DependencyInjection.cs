@@ -33,6 +33,7 @@ namespace BaityMu.Services
             services.AddScoped<IProduccionService, ProduccionService>();
             services.AddScoped<IInventarioService, InventarioService>();
             services.AddScoped<IVentaService, VentaService>();
+            services.AddScoped<IReporteService, ReporteService>();
 
             return services;
         }

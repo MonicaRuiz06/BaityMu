@@ -297,6 +297,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--potrero); 
     padding: 6px 14px; border-radius: 999px; cursor: pointer;
 }
 .pestanas button.activa { background: var(--tarjeta); color: var(--tinta); box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
+.pestanas button:disabled { opacity: .45; cursor: not-allowed; }
 
 .barra-herramientas { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
 

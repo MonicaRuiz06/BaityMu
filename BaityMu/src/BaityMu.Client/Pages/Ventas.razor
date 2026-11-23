@@ -1,4 +1,4 @@
-@page "/ventas"
+﻿@page "/ventas"
 @implements IDisposable
 @inject BaityMuApi Api
 @inject EstadoApp Estado
@@ -78,10 +78,16 @@ else
     </div>
 
     <section class="seccion">
-        <h2>Ventas de esta sesión</h2>
+        <div class="barra-herramientas">
+            <h2>Ventas del @Formato.Fecha(Estado.Dia)</h2>
+            @if (_hechas.Count > 0)
+            {
+                <span class="atenuada">@_hechas.Count ventas · <strong>@Formato.Pesos(_hechas.Sum(v => v.Total))</strong></span>
+            }
+        </div>
         @if (_hechas.Count == 0)
         {
-            <div class="panel vacio"><span class="vacio-icono">🧾</span><p>Todavía no has registrado ventas.</p></div>
+            <div class="panel vacio"><span class="vacio-icono">🧾</span><p>No hay ventas registradas este día.</p></div>
         }
         else
         {
@@ -114,7 +120,7 @@ else
 @code {
     private Granja? _granja;
     private List<ResumenInventario> _resumen = new();
-    private readonly List<Venta> _hechas = new();
+    private List<Venta> _hechas = new();
     private NuevaVenta _datos = new();
     private ApiException? _error;
     private bool _ocupado;
@@ -137,8 +143,11 @@ else
         {
             var granja = Api.ObtenerGranjaAsync();
             var resumen = Api.ResumenInventarioAsync(Estado.Dia);
-            await Task.WhenAll(granja, resumen);
+            var ventas = Api.ListarVentasAsync(Estado.Dia, Estado.Dia);
+            await Task.WhenAll(granja, resumen, ventas);
             (_granja, _resumen) = (granja.Result, resumen.Result);
+            // La más reciente primero.
+            _hechas = ventas.Result.OrderByDescending(v => v.Id).ToList();
         }
         catch (ApiException e)
         {
@@ -153,7 +162,6 @@ else
         {
             _datos.Fecha = Estado.Dia;
             var venta = await Api.RegistrarVentaAsync(_datos);
-            _hechas.Insert(0, venta);
             var lotes = string.Join(" + ", venta.Detalles.Select(d => $"{Formato.Cantidad(d.Cantidad)} del lote #{d.LoteId}"));
             Estado.Exito($"Venta #{venta.Id}: {Formato.Pesos(venta.Total)} ({lotes}).");
             _datos = new NuevaVenta { TipoProducto = _datos.TipoProducto };

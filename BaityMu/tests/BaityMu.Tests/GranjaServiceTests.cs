@@ -233,5 +233,79 @@ namespace BaityMu.Tests
                 _servicio.ObtenerVacaAsync(99));
             Assert.That(error!.Message, Is.EqualTo("No existe una vaca con id 99."));
         }
+
+        // ----------------------------------------------------------------------------
+        // HU-04 Retirar una vaca
+        // ----------------------------------------------------------------------------
+
+        [Test]
+        public async Task RetirarVacaAsync_VacaActiva_BajaNYQuedaInactiva()
+        {
+            // Arrange
+            var (_, lola) = await SembrarDosVacasAsync();
+
+            // Act
+            await _servicio.RetirarVacaAsync(lola.Id);
+
+            // Assert: se vuelve a leer desde la base de datos
+            _db.ChangeTracker.Clear();
+            var granja = await new GranjaRepository(_db).ObtenerConVacasAsync();
+            Assert.That(granja!.NumeroVacas, Is.EqualTo(1));
+            Assert.That(granja.Vacas.Single(v => v.Id == lola.Id).Activa, Is.False);
+            Assert.That(await _db.Vacas.CountAsync(), Is.EqualTo(2), "La vaca no se borra");
+        }
+
+        [Test]
+        public async Task RetirarVacaAsync_ConservaElHistorialDeProduccion()
+        {
+            // Arrange
+            var (_, lola) = await SembrarDosVacasAsync();
+            _db.ProduccionesLeche.Add(new ProduccionLeche(lola.Id, new DateOnly(2026, 12, 1), 20m));
+            await _db.SaveChangesAsync();
+
+            // Act
+            await _servicio.RetirarVacaAsync(lola.Id);
+
+            // Assert
+            var detalle = await _servicio.ObtenerVacaAsync(lola.Id);
+            Assert.That(detalle.Vaca.Activa, Is.False);
+            Assert.That(detalle.LitrosProducidos, Is.EqualTo(20m));
+        }
+
+        [Test]
+        public async Task RetirarVacaAsync_UltimaVacaActiva_LanzaReglaDeNegocio()
+        {
+            // Arrange: se retira a Lola y queda solo BaityCow
+            var (baityCow, lola) = await SembrarDosVacasAsync();
+            await _servicio.RetirarVacaAsync(lola.Id);
+
+            // Act y Assert
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _servicio.RetirarVacaAsync(baityCow.Id));
+        }
+
+        [Test]
+        public async Task RetirarVacaAsync_IdInexistente_LanzaNoEncontrado()
+        {
+            // Arrange
+            await SembrarDosVacasAsync();
+
+            // Act y Assert
+            Assert.ThrowsAsync<RecursoNoEncontradoException>(() =>
+                _servicio.RetirarVacaAsync(99));
+        }
+
+        [Test]
+        public async Task RetirarVacaAsync_YaRetirada_LanzaConflicto()
+        {
+            // Arrange: tres vacas, para que retirar a Lola no deje solo una
+            var (_, lola) = await SembrarDosVacasAsync();
+            await _servicio.AgregarVacaAsync(new CrearVacaRequest { Raza = "Normando" });
+            await _servicio.RetirarVacaAsync(lola.Id);
+
+            // Act y Assert
+            Assert.ThrowsAsync<ConflictoException>(() =>
+                _servicio.RetirarVacaAsync(lola.Id));
+        }
     }
 }

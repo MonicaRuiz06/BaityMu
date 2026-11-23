@@ -38,5 +38,11 @@ namespace BaityMu.Domain.Entities
             FechaIngreso = fechaIngreso;
             Activa = true;
         }
+
+        /// <summary>
+        /// Retira la vaca del hato: deja de contar en n, pero no se borra, para conservar su
+        /// historial (RNF-11). Lo usa solo <see cref="Granja.RetirarVaca"/>.
+        /// </summary>
+        internal void Retirar() => Activa = false;
     }
 }

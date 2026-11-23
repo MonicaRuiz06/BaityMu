@@ -36,5 +36,13 @@ namespace BaityMu.Services.Interfaces
         /// <returns>La vaca y su historial.</returns>
         /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La vaca o la granja no existen (404).</exception>
         Task<VacaDetalle> ObtenerVacaAsync(int id, CancellationToken ct = default);
+
+        /// <summary>Retira una vaca del hato (HU-04). Se desactiva, nunca se borra.</summary>
+        /// <param name="id">Id de la vaca.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La vaca no existe (404).</exception>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">Es la última vaca activa (400).</exception>
+        /// <exception cref="BaityMu.Domain.Exceptions.ConflictoException">Ya estaba retirada (409).</exception>
+        Task RetirarVacaAsync(int id, CancellationToken ct = default);
     }
 }

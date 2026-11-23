@@ -64,6 +64,28 @@ namespace BaityMu.Web.Controllers
             return Ok(_mapper.Map<VacaDetalleResponse>(detalle));
         }
 
+        /// <summary>Retira una vaca del hato (HU-04).</summary>
+        /// <remarks>
+        /// La vaca **no se borra**: queda inactiva, deja de contar en n y conserva su
+        /// historial de producción. No se puede retirar la última vaca activa.
+        /// </remarks>
+        /// <param name="id">Id de la vaca.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="204">La vaca se retiró.</response>
+        /// <response code="400">Es la última vaca activa.</response>
+        /// <response code="404">No existe una vaca con ese Id.</response>
+        /// <response code="409">La vaca ya estaba retirada.</response>
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+        public async Task<IActionResult> Retirar(int id, CancellationToken ct)
+        {
+            await _granjaService.RetirarVacaAsync(id, ct);
+            return NoContent();
+        }
+
         /// <summary>Registra una vaca en la granja (HU-01).</summary>
         /// <remarks>
         /// Si no se envía nombre, la primera vaca se llama **BaityCow**, la segunda

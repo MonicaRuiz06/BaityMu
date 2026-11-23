@@ -116,6 +116,9 @@ public sealed class BaityMuApi(HttpClient http)
     public Task<ReporteLecheDiaria> ReporteLecheDiariaAsync(DateOnly desde, DateOnly hasta) =>
         GetAsync<ReporteLecheDiaria>($"api/reportes/leche-diaria?desde={F(desde)}&hasta={F(hasta)}");
 
+    public Task<ReporteProductoDiario> ReporteProductoDiarioAsync(DateOnly desde, DateOnly hasta) =>
+        GetAsync<ReporteProductoDiario>($"api/reportes/producto-diario?desde={F(desde)}&hasta={F(hasta)}");
+
     // ------------------------------------------------------------------ Plomería
 
     private async Task<T> GetAsync<T>(string url)

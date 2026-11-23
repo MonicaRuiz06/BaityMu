@@ -1,4 +1,5 @@
-﻿using BaityMu.Domain.Enums;
+﻿using BaityMu.Domain.Entities;
+using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Domain.Interfaces;
 using BaityMu.Services.Dtos;
@@ -20,13 +21,19 @@ namespace BaityMu.Services
     /// </remarks>
     public sealed class ReporteService : IReporteService
     {
+        private readonly IGranjaRepository _granjas;
         private readonly IVentaRepository _ventas;
         private readonly IProduccionRepository _producciones;
         private readonly ILoteRepository _lotes;
 
         /// <summary>Recibe sus dependencias por inyección de dependencias.</summary>
-        public ReporteService(IVentaRepository ventas, IProduccionRepository producciones, ILoteRepository lotes)
+        public ReporteService(
+            IGranjaRepository granjas,
+            IVentaRepository ventas,
+            IProduccionRepository producciones,
+            ILoteRepository lotes)
         {
+            _granjas = granjas;
             _ventas = ventas;
             _producciones = producciones;
             _lotes = lotes;
@@ -126,6 +133,64 @@ namespace BaityMu.Services
                 TotalTransformado = dias.Sum(d => d.LitrosTransformados),
                 TotalNoAprovechado = dias.Sum(d => d.LitrosNoAprovechados),
             };
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Agrupa los lotes del período por (fecha, producto). La cantidad es la inicial de
+        /// cada lote: lo que se elaboró, aunque después se haya vendido o dañado.
+        /// La unidad no está en el lote sino en el producto de la granja (ParametroProducto).
+        /// </remarks>
+        public async Task<ReporteProductoDiarioResponse> ProductoDiarioAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default)
+        {
+            ValidarRango(desde, hasta);
+
+            var lotes = await _lotes.ListarAsync(null, desde, hasta, ct);
+            var unidades = await UnidadesAsync(ct);
+
+            return new ReporteProductoDiarioResponse
+            {
+                Desde = desde,
+                Hasta = hasta,
+                Dias = lotes
+                    .GroupBy(l => (l.FechaProduccion, l.TipoProducto))
+                    .OrderBy(g => g.Key.FechaProduccion)
+                    .ThenBy(g => g.Key.TipoProducto)
+                    .Select(g => Elaborado(g.Key.FechaProduccion, g.Key.TipoProducto, g, unidades))
+                    .ToList(),
+                TotalesPorProducto = lotes
+                    .GroupBy(l => l.TipoProducto)
+                    .OrderBy(g => g.Key)
+                    .Select(g => Elaborado(null, g.Key, g, unidades))
+                    .ToList(),
+            };
+        }
+
+        /// <summary>Suma un grupo de lotes en un renglón del reporte de producto.</summary>
+        private static ProductoElaboradoItem Elaborado(
+            DateOnly? fecha,
+            TipoProducto tipo,
+            IEnumerable<LoteProducto> lotes,
+            IReadOnlyDictionary<TipoProducto, string> unidades) =>
+            new()
+            {
+                Fecha = fecha,
+                TipoProducto = tipo,
+                Unidad = unidades.GetValueOrDefault(tipo, string.Empty),
+                Cantidad = lotes.Sum(l => l.CantidadInicial),
+                LitrosUsados = lotes.Sum(l => l.LitrosUsados),
+                NumeroLotes = lotes.Count(),
+            };
+
+        /// <summary>Unidad de cada producto configurado ("kg" para el queso, "L" para el yogurt).</summary>
+        private async Task<IReadOnlyDictionary<TipoProducto, string>> UnidadesAsync(CancellationToken ct)
+        {
+            var granja = await _granjas.ObtenerCompletaAsync(ct);
+            return granja?.Productos.ToDictionary(p => p.TipoProducto, p => p.Unidad)
+                ?? new Dictionary<TipoProducto, string>();
         }
 
         /// <summary>

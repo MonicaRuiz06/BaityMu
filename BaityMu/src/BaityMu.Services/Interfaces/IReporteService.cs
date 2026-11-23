@@ -32,5 +32,15 @@ namespace BaityMu.Services.Interfaces
             DateOnly? desde,
             DateOnly? hasta,
             CancellationToken ct = default);
+
+        /// <summary>Cantidad de cada producto elaborada cada día, con su unidad y los litros usados (HU-17).</summary>
+        /// <param name="desde">Fecha mínima, o null para no limitar.</param>
+        /// <param name="hasta">Fecha máxima, o null para no limitar.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">desde es posterior a hasta (400).</exception>
+        Task<ReporteProductoDiarioResponse> ProductoDiarioAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default);
     }
 }

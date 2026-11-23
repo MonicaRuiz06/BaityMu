@@ -236,6 +236,24 @@ public sealed class LecheDelDia
     public decimal LitrosNoAprovechados { get; set; }
 }
 
+public sealed class ReporteProductoDiario
+{
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public List<ProductoElaborado> Dias { get; set; } = new();
+    public List<ProductoElaborado> TotalesPorProducto { get; set; } = new();
+}
+
+public sealed class ProductoElaborado
+{
+    public DateOnly? Fecha { get; set; }
+    public TipoProducto TipoProducto { get; set; }
+    public string Unidad { get; set; } = "";
+    public decimal Cantidad { get; set; }
+    public decimal LitrosUsados { get; set; }
+    public int NumeroLotes { get; set; }
+}
+
 public sealed class TotalVentasProducto
 {
     public TipoProducto TipoProducto { get; set; }

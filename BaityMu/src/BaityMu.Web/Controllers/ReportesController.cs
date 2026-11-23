@@ -65,5 +65,24 @@ namespace BaityMu.Web.Controllers
             [FromQuery] DateOnly? hasta,
             CancellationToken ct) =>
             Ok(await _reportes.LecheDiariaAsync(desde, hasta, ct));
+
+        /// <summary>Queso y yogurt elaborados cada día, con su unidad y los litros usados (HU-17).</summary>
+        /// <remarks>
+        /// Escenario: el día 1 muestra **10 kg** de queso (100 L) y **50 L** de yogurt (50 L);
+        /// el día 2, **15 kg** de queso (150 L). También trae el total de cada producto.
+        /// </remarks>
+        /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">El reporte (con listas vacías si no se elaboró nada).</response>
+        /// <response code="400">'desde' es posterior a 'hasta'.</response>
+        [HttpGet("producto-diario")]
+        [ProducesResponseType<ReporteProductoDiarioResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<ReporteProductoDiarioResponse>> ProductoDiario(
+            [FromQuery] DateOnly? desde,
+            [FromQuery] DateOnly? hasta,
+            CancellationToken ct) =>
+            Ok(await _reportes.ProductoDiarioAsync(desde, hasta, ct));
     }
 }

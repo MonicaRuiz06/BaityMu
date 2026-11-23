@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using BaityMu.Services.Dtos;
 using BaityMu.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +26,27 @@ namespace BaityMu.Web.Controllers
         {
             _granjaService = granjaService;
             _mapper = mapper;
+        }
+
+        /// <summary>Lista las vacas de la granja con los litros que ha producido cada una (HU-02).</summary>
+        /// <remarks>
+        /// Por defecto solo trae las vacas activas. Con **incluirRetiradas=true** también
+        /// trae las retiradas, marcadas con `activa: false`. Una vaca que nunca se ha
+        /// ordeñado sale con 0 L.
+        /// </remarks>
+        /// <param name="incluirRetiradas">true para incluir las vacas retiradas.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">El listado (puede estar vacío).</response>
+        /// <response code="404">La granja no está configurada.</response>
+        [HttpGet]
+        [ProducesResponseType<IReadOnlyList<VacaResponse>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+        public async Task<ActionResult<IReadOnlyList<VacaResponse>>> Listar(
+            [FromQuery] bool incluirRetiradas = false,
+            CancellationToken ct = default)
+        {
+            var vacas = await _granjaService.ListarVacasAsync(incluirRetiradas, ct);
+            return Ok(_mapper.Map<IReadOnlyList<VacaResponse>>(vacas));
         }
 
         /// <summary>Registra una vaca en la granja (HU-01).</summary>

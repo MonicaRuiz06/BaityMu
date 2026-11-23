@@ -132,6 +132,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/` | Bienvenida de la API (¡Muuu!) |
+| GET | `/api/vacas?incluirRetiradas=` | Lista las vacas con los litros que ha dado cada una (HU-02) · 200 |
 | POST | `/api/vacas` | Registra una vaca (HU-01). Sin nombre, se llama BaityCow, BaityCow 2... · 201, 400, 404, 409 |
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 

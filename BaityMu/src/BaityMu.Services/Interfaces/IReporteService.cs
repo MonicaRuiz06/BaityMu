@@ -61,5 +61,18 @@ namespace BaityMu.Services.Interfaces
             DateOnly? hasta,
             TipoProducto? tipoProducto,
             CancellationToken ct = default);
+
+        /// <summary>
+        /// Producción de cada vaca en un período: promedio del hato, la que más y la que menos
+        /// produce, y las que están por debajo del promedio con lo que les falta (HU-20).
+        /// </summary>
+        /// <param name="desde">Fecha mínima, o null para no limitar.</param>
+        /// <param name="hasta">Fecha máxima, o null para no limitar.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">desde es posterior a hasta (400).</exception>
+        Task<ReporteVacasResponse> VacasAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default);
     }
 }

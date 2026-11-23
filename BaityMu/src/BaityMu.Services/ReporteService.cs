@@ -1,4 +1,4 @@
-using BaityMu.Domain.Enums;
+﻿using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 using BaityMu.Domain.Interfaces;
 using BaityMu.Services.Dtos;
@@ -21,11 +21,15 @@ namespace BaityMu.Services
     public sealed class ReporteService : IReporteService
     {
         private readonly IVentaRepository _ventas;
+        private readonly IProduccionRepository _producciones;
+        private readonly ILoteRepository _lotes;
 
         /// <summary>Recibe sus dependencias por inyección de dependencias.</summary>
-        public ReporteService(IVentaRepository ventas)
+        public ReporteService(IVentaRepository ventas, IProduccionRepository producciones, ILoteRepository lotes)
         {
             _ventas = ventas;
+            _producciones = producciones;
+            _lotes = lotes;
         }
 
         /// <inheritdoc />
@@ -69,6 +73,58 @@ namespace BaityMu.Services
 
                 // Sum de una lista vacía es 0: así se cumple "sin datos → totales en 0".
                 TotalGeneral = ventas.Sum(v => v.Total),
+            };
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Junta dos consultas por fecha:
+        /// - los ordeños del período, sumados por día (litros producidos);
+        /// - los lotes producidos en el período, sumando sus LitrosUsados por día (transformados).
+        /// Un lote siempre lleva la fecha de la leche que usó (RN-02), así que las dos se
+        /// cruzan por fecha. Solo aparecen los días con producción.
+        /// </remarks>
+        public async Task<ReporteLecheDiariaResponse> LecheDiariaAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default)
+        {
+            ValidarRango(desde, hasta);
+
+            var producciones = await _producciones.ListarAsync(desde, hasta, ct);
+            var lotes = await _lotes.ListarAsync(null, desde, hasta, ct);
+
+            // Diccionario fecha → litros transformados, para buscar cada día rápido.
+            var transformadosPorDia = lotes
+                .GroupBy(l => l.FechaProduccion)
+                .ToDictionary(g => g.Key, g => g.Sum(l => l.LitrosUsados));
+
+            var dias = producciones
+                .GroupBy(p => p.Fecha)
+                .OrderBy(g => g.Key)
+                .Select(g =>
+                {
+                    var producidos = g.Sum(p => p.Litros);
+                    // GetValueOrDefault: si ese día no se transformó nada, da 0.
+                    var transformados = transformadosPorDia.GetValueOrDefault(g.Key);
+                    return new LecheDelDia
+                    {
+                        Fecha = g.Key,
+                        LitrosProducidos = producidos,
+                        LitrosTransformados = transformados,
+                        LitrosNoAprovechados = producidos - transformados,
+                    };
+                })
+                .ToList();
+
+            return new ReporteLecheDiariaResponse
+            {
+                Desde = desde,
+                Hasta = hasta,
+                Dias = dias,
+                TotalProducido = dias.Sum(d => d.LitrosProducidos),
+                TotalTransformado = dias.Sum(d => d.LitrosTransformados),
+                TotalNoAprovechado = dias.Sum(d => d.LitrosNoAprovechados),
             };
         }
 

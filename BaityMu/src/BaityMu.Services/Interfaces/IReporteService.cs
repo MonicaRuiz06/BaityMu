@@ -1,4 +1,4 @@
-using BaityMu.Domain.Enums;
+﻿using BaityMu.Domain.Enums;
 using BaityMu.Services.Dtos;
 
 namespace BaityMu.Services.Interfaces
@@ -21,6 +21,16 @@ namespace BaityMu.Services.Interfaces
             DateOnly? desde,
             DateOnly? hasta,
             TipoProducto? tipoProducto,
+            CancellationToken ct = default);
+
+        /// <summary>Litros producidos, transformados y no aprovechados de cada día (HU-16).</summary>
+        /// <param name="desde">Fecha mínima, o null para no limitar.</param>
+        /// <param name="hasta">Fecha máxima, o null para no limitar.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">desde es posterior a hasta (400).</exception>
+        Task<ReporteLecheDiariaResponse> LecheDiariaAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
             CancellationToken ct = default);
     }
 }

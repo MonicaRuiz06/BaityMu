@@ -1,0 +1,106 @@
+﻿@page "/inventario"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Inventario · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityBodeguero</span>
+        <h1>Inventario al @Formato.Fecha(Estado.Dia)</h1>
+        <p>Los lotes en el orden en que se venden (FIFO: el más antiguo primero). Un lote está vencido cuando el día pasa su fecha de vencimiento.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_lotes is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="grilla grilla-2">
+        @foreach (var r in _resumen)
+        {
+            <section class="panel">
+                <span class="insignia insignia-@r.TipoProducto.ToString().ToLowerInvariant()">@r.TipoProducto</span>
+                <div class="trio">
+                    <div><div class="metrica-etiqueta">Para vender</div><strong class="metrica-valor" style="color:var(--potrero)">@Formato.ConUnidad(r.CantidadVendible, r.TipoProducto)</strong></div>
+                    <div><div class="metrica-etiqueta">Vencido</div><strong class="metrica-valor" style="color:var(--paja-oscura)">@Formato.ConUnidad(r.CantidadVencidaSinProcesar, r.TipoProducto)</strong></div>
+                    <div><div class="metrica-etiqueta">Dañado</div><strong class="metrica-valor" style="color:var(--arcilla)">@Formato.ConUnidad(r.CantidadDañada, r.TipoProducto)</strong></div>
+                </div>
+            </section>
+        }
+    </div>
+
+    <section class="seccion">
+        <div class="barra-herramientas">
+            <div class="pestanas" role="tablist">
+                <button type="button" class="@(_tipo is null ? "activa" : "")" @onclick="() => FiltrarAsync(null)">Todos</button>
+                <button type="button" class="@(_tipo == TipoProducto.Queso ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Queso)">🧀 Queso</button>
+                <button type="button" class="@(_tipo == TipoProducto.Yogurt ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Yogurt)">🥣 Yogurt</button>
+            </div>
+            <span class="atenuada">@_lotes.Count lotes</span>
+        </div>
+
+        @if (_lotes.Count == 0)
+        {
+            <div class="panel vacio">
+                <span class="vacio-icono">📦</span>
+                <p>No hay lotes todavía. Se crean al transformar la leche.</p>
+                <a class="boton" href="transformacion">Ir a transformación</a>
+            </div>
+        }
+        else
+        {
+            <TablaLotes Lotes="_lotes" FechaConsulta="Estado.Dia" />
+        }
+    </section>
+}
+
+@code {
+    private List<Lote>? _lotes;
+    private List<ResumenInventario> _resumen = new();
+    private TipoProducto? _tipo;
+    private ApiException? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            var lotes = Api.ListarLotesAsync(_tipo, Estado.Dia);
+            var resumen = Api.ResumenInventarioAsync(Estado.Dia);
+            await Task.WhenAll(lotes, resumen);
+            (_lotes, _resumen) = (lotes.Result, resumen.Result);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+
+    private async Task FiltrarAsync(TipoProducto? tipo)
+    {
+        _tipo = tipo;
+        await CargarAsync();
+    }
+
+    private async void AlCambiarDia()
+    {
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

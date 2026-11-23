@@ -1,0 +1,138 @@
+@page "/configuracion"
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Configuración · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityAdministrador</span>
+        <h1>Configuración de la granja</h1>
+        <p>Los cambios aplican a lo que se haga desde ahora. Los lotes y ventas anteriores conservan los valores con los que se crearon.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_granja is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="grilla grilla-lateral">
+        <div class="form">
+            <section class="panel">
+                <h2>Leche</h2>
+                <div class="campos-fila">
+                    <label class="campo">
+                        <span>Litros por vaca al día (l)</span>
+                        <input type="number" min="0.1" step="0.5" @bind="_litrosPorVaca" />
+                    </label>
+                    <div class="campo">
+                        <span>Producción esperada (n × l)</span>
+                        <strong style="padding-top:8px">@_granja.NumeroVacas × @Formato.Litros(_litrosPorVaca) = @Formato.Litros(_granja.NumeroVacas * _litrosPorVaca)</strong>
+                    </div>
+                </div>
+            </section>
+
+            @foreach (var p in _productos)
+            {
+                <section class="panel">
+                    <h2>@(p.TipoProducto == TipoProducto.Queso ? "🧀" : "🥣") @p.TipoProducto</h2>
+                    <div class="campos-fila">
+                        <label class="campo">
+                            <span>Unidad</span>
+                            <input @bind="p.Unidad" maxlength="10" />
+                        </label>
+                        <label class="campo">
+                            <span>Litros por unidad</span>
+                            <input type="number" min="0.001" step="0.1" @bind="p.LitrosPorUnidad" />
+                        </label>
+                        <label class="campo">
+                            <span>Vida útil (días)</span>
+                            <input type="number" min="1" step="1" @bind="p.VidaUtilDias" />
+                        </label>
+                        <label class="campo">
+                            <span>Precio por unidad</span>
+                            <input type="number" min="0" step="100" @bind="p.PrecioUnitario" />
+                        </label>
+                    </div>
+                </section>
+            }
+
+            <div class="acciones">
+                <button type="button" class="boton" disabled="@_ocupado" @onclick="GuardarAsync">Guardar cambios</button>
+                <button type="button" class="boton boton-secundario" disabled="@_ocupado" @onclick="CargarAsync">Descartar</button>
+            </div>
+        </div>
+
+        <aside class="panel panel-nota">
+            <h3>Valores del taller</h3>
+            <p style="margin:8px 0 12px">10 vacas × 15 L. Queso: 10 L/kg y 30 días. Yogurt: 1 L/L y 15 días.</p>
+            <button type="button" class="boton boton-secundario" @onclick="ValoresDelTaller">Cargar estos valores</button>
+        </aside>
+    </div>
+}
+
+@code {
+    private Granja? _granja;
+    private decimal _litrosPorVaca;
+    private List<ActualizarProducto> _productos = new();
+    private ApiException? _error;
+    private bool _ocupado;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            _granja = await Api.ObtenerGranjaAsync();
+            _litrosPorVaca = _granja.LitrosPorVaca;
+            _productos = _granja.Productos.Select(p => new ActualizarProducto
+            {
+                TipoProducto = p.TipoProducto,
+                Unidad = p.Unidad,
+                LitrosPorUnidad = p.LitrosPorUnidad,
+                VidaUtilDias = p.VidaUtilDias,
+                PrecioUnitario = p.PrecioUnitario
+            }).ToList();
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+
+    private void ValoresDelTaller()
+    {
+        _litrosPorVaca = 15;
+        foreach (var p in _productos)
+        {
+            (p.LitrosPorUnidad, p.VidaUtilDias) = p.TipoProducto == TipoProducto.Queso ? (10m, 30) : (1m, 15);
+            p.Unidad = p.TipoProducto == TipoProducto.Queso ? "kg" : "L";
+        }
+    }
+
+    private async Task GuardarAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            _granja = await Api.ActualizarGranjaAsync(new ActualizarGranja { LitrosPorVaca = _litrosPorVaca, Productos = _productos });
+            Estado.Exito("Configuración guardada.");
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+}

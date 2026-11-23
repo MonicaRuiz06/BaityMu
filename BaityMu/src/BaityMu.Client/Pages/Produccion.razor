@@ -1,0 +1,182 @@
+@page "/produccion"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Producción · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityGanadero</span>
+        <h1>Producción del @Formato.Fecha(Estado.Dia)</h1>
+        <p>Cada vaca se ordeña una sola vez por día. Si no detallas litros, cada vaca activa da <strong>l</strong> y el total es <strong>n × l</strong>.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_cargando)
+{
+    <Cargando />
+}
+else if (_produccion is not null)
+{
+    <div class="grilla grilla-3">
+        <Metrica Etiqueta="Leche del día" Valor="@Formato.Litros(_produccion.TotalLitros)" Nota="@($"{_produccion.Vacas.Count} vacas ordeñadas")" Destacada="true" />
+        <Metrica Etiqueta="Transformada" Valor="@Formato.Litros(_produccion.LitrosTransformados)" Nota="En queso o yogurt" />
+        <Metrica Etiqueta="Disponible" Valor="@Formato.Litros(_produccion.LitrosDisponibles)" Nota="Lo que sobre al final es no aprovechado" />
+    </div>
+
+    <section class="panel seccion">
+        <BarraLeche Produccion="_produccion" />
+        @if (_produccion.LitrosDisponibles > 0)
+        {
+            <a class="boton boton-paja" style="margin-top:16px" href="transformacion">🧀 Transformar la leche disponible</a>
+        }
+    </section>
+
+    <section class="seccion">
+        <h2>Lo que dio cada vaca</h2>
+        <div class="tabla-envoltura">
+            <table>
+                <thead><tr><th>#</th><th>Vaca</th><th class="num">Litros</th></tr></thead>
+                <tbody>
+                    @foreach (var v in _produccion.Vacas)
+                    {
+                        <tr><td class="atenuada">@v.VacaId</td><td><a href="vacas/@v.VacaId">@v.Nombre</a></td><td class="num">@Formato.Litros(v.Litros)</td></tr>
+                    }
+                </tbody>
+                <tfoot><tr><td></td><td>Total</td><td class="num">@Formato.Litros(_produccion.TotalLitros)</td></tr></tfoot>
+            </table>
+        </div>
+    </section>
+}
+else
+{
+    <section class="panel">
+        <h2>Registrar el ordeño</h2>
+
+        <label class="check" style="margin-bottom:16px">
+            <input type="checkbox" @bind="_detallar" /> Detallar los litros de cada vaca
+        </label>
+
+        @if (!_detallar)
+        {
+            <p style="margin-bottom:16px">
+                Se registrarán <strong>@(_granja?.NumeroVacas ?? 0) vacas × @Formato.Litros(_granja?.LitrosPorVaca ?? 0)</strong>
+                = <strong>@Formato.Litros(_granja?.ProduccionDiariaEsperada ?? 0)</strong>.
+            </p>
+        }
+        else
+        {
+            <p class="atenuada" style="margin-bottom:12px">Solo se registran las vacas con litros. Deja en blanco las que no se ordeñaron.</p>
+            <div class="tabla-envoltura" style="margin-bottom:16px">
+                <table>
+                    <thead><tr><th>Vaca</th><th class="num" style="width:160px">Litros</th></tr></thead>
+                    <tbody>
+                        @foreach (var fila in _filas)
+                        {
+                            <tr>
+                                <td>@fila.Nombre</td>
+                                <td><input type="number" min="0" step="0.1" @bind="fila.Litros" aria-label="Litros de @fila.Nombre" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <button type="button" class="boton" disabled="@_ocupado" @onclick="RegistrarAsync">🥛 Registrar producción del @Formato.Fecha(Estado.Dia)</button>
+    </section>
+}
+
+@code {
+    private ProduccionDiaria? _produccion;
+    private Granja? _granja;
+    private List<FilaVaca> _filas = new();
+    private ApiException? _error;
+    private bool _cargando = true;
+    private bool _detallar;
+    private bool _ocupado;
+
+    private sealed class FilaVaca
+    {
+        public int VacaId { get; init; }
+        public string Nombre { get; init; } = "";
+        public decimal? Litros { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        _cargando = true;
+        try
+        {
+            var produccion = Api.ObtenerProduccionAsync(Estado.Dia);
+            var granja = Api.ObtenerGranjaAsync();
+            var vacas = Api.ListarVacasAsync(false);
+            await Task.WhenAll(produccion, granja, vacas);
+            _produccion = produccion.Result;
+            _granja = granja.Result;
+            _filas = vacas.Result
+                .Select(v => new FilaVaca { VacaId = v.Id, Nombre = v.Nombre, Litros = _granja.LitrosPorVaca })
+                .ToList();
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            var datos = new RegistrarProduccion { Fecha = Estado.Dia };
+            if (_detallar)
+            {
+                datos.Vacas = _filas
+                    .Where(f => f.Litros is not null)
+                    .Select(f => new ProduccionVaca { VacaId = f.VacaId, Litros = f.Litros!.Value })
+                    .ToList();
+                if (datos.Vacas.Count == 0)
+                {
+                    Estado.Error("Escribe los litros de al menos una vaca.");
+                    return;
+                }
+            }
+
+            _produccion = await Api.RegistrarProduccionAsync(datos);
+            Estado.Exito($"Se registraron {Formato.Litros(_produccion.TotalLitros)} del {Formato.Fecha(Estado.Dia)}.");
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
+    private async void AlCambiarDia()
+    {
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

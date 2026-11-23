@@ -1,0 +1,132 @@
+@page "/"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Inicio · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">Todos los Baity</span>
+        <h1>¡Muuu! Bienvenido a la granja</h1>
+        <p>Así está la granja el <strong>@Formato.FechaLarga(Estado.Dia)</strong>.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_granja is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="grilla grilla-4">
+        <Metrica Etiqueta="Vacas activas (n)" Valor="@_granja.NumeroVacas.ToString()" Nota="Sin contar las retiradas" />
+        <Metrica Etiqueta="Litros por vaca (l)" Valor="@Formato.Litros(_granja.LitrosPorVaca)" Nota="Cada día" />
+        <Metrica Etiqueta="Producción esperada" Valor="@Formato.Litros(_granja.ProduccionDiariaEsperada)" Nota="n × l" Destacada="true" />
+        <Metrica Etiqueta="Leche del día"
+                 Valor="@(_produccion is null ? "—" : Formato.Litros(_produccion.TotalLitros))"
+                 Nota="@(_produccion is null ? "Aún sin registrar" : $"{Formato.Litros(_produccion.LitrosDisponibles)} sin transformar")" />
+    </div>
+
+    <div class="grilla grilla-lateral seccion">
+        <section class="panel">
+            <h2>Leche del @Formato.Fecha(Estado.Dia)</h2>
+            @if (_produccion is null)
+            {
+                <div class="vacio">
+                    <span class="vacio-icono">🥛</span>
+                    <p>Todavía no se ha registrado el ordeño de este día.</p>
+                    <a class="boton" href="produccion">Registrar producción</a>
+                </div>
+            }
+            else
+            {
+                <BarraLeche Produccion="_produccion" />
+                <div class="acciones" style="margin-top:16px">
+                    <a class="boton boton-paja" href="transformacion">Transformar leche</a>
+                    <a class="boton boton-secundario" href="produccion">Ver detalle por vaca</a>
+                </div>
+            }
+        </section>
+
+        <section class="panel">
+            <h2>Inventario</h2>
+            @foreach (var r in _resumen)
+            {
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--linea)">
+                    <span class="insignia insignia-@r.TipoProducto.ToString().ToLowerInvariant()">@r.TipoProducto</span>
+                    <span>
+                        <strong>@Formato.ConUnidad(r.CantidadVendible, r.TipoProducto)</strong>
+                        <span class="atenuada"> para vender</span>
+                    </span>
+                </div>
+                @if (r.CantidadVencidaSinProcesar > 0)
+                {
+                    <p style="font-size:.85rem;color:var(--paja-oscura);padding-top:6px">
+                        ⚠ @Formato.ConUnidad(r.CantidadVencidaSinProcesar, r.TipoProducto) vencido sin procesar
+                    </p>
+                }
+            }
+            <a class="boton boton-secundario" style="margin-top:14px;width:100%" href="inventario">Ver lotes</a>
+        </section>
+    </div>
+
+    <section class="seccion">
+        <h2>Productos</h2>
+        <div class="grilla grilla-2">
+            @foreach (var p in _granja.Productos)
+            {
+                <div class="panel">
+                    <span class="insignia insignia-@p.TipoProducto.ToString().ToLowerInvariant()">@p.TipoProducto</span>
+                    <dl class="datos" style="margin-top:12px">
+                        <div><dt>Rendimiento</dt><dd>@Formato.Cantidad(p.LitrosPorUnidad) L por @p.Unidad</dd></div>
+                        <div><dt>Vida útil</dt><dd>@p.VidaUtilDias días</dd></div>
+                        <div><dt>Precio</dt><dd>@Formato.Pesos(p.PrecioUnitario) / @p.Unidad</dd></div>
+                    </dl>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private Granja? _granja;
+    private ProduccionDiaria? _produccion;
+    private List<ResumenInventario> _resumen = new();
+    private ApiException? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            var granja = Api.ObtenerGranjaAsync();
+            var produccion = Api.ObtenerProduccionAsync(Estado.Dia);
+            var resumen = Api.ResumenInventarioAsync(Estado.Dia);
+            await Task.WhenAll(granja, produccion, resumen);
+            (_granja, _produccion, _resumen) = (granja.Result, produccion.Result, resumen.Result);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+
+    private async void AlCambiarDia()
+    {
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

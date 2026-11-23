@@ -1,0 +1,161 @@
+@page "/transformacion"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Transformación · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityQuesero</span>
+        <h1>Transformar la leche del @Formato.Fecha(Estado.Dia)</h1>
+        <p>Cada transformación usa un solo producto y crea su propio lote. La suma nunca puede pasar de lo que se ordeñó ese día.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_cargando)
+{
+    <Cargando />
+}
+else if (_produccion is null)
+{
+    <div class="panel vacio">
+        <span class="vacio-icono">🥛</span>
+        <p>No hay producción registrada el @Formato.Fecha(Estado.Dia). Primero hay que ordeñar.</p>
+        <a class="boton" href="produccion">Ir a producción</a>
+    </div>
+}
+else
+{
+    <div class="grilla grilla-lateral">
+        <section class="panel">
+            <h2>Nueva transformación</h2>
+            <div class="form">
+                <div class="selector-producto" role="radiogroup" aria-label="Producto">
+                    @foreach (var p in _granja!.Productos)
+                    {
+                        <button type="button" role="radio" aria-checked="@(_datos.TipoProducto == p.TipoProducto)"
+                                class="opcion-producto @(_datos.TipoProducto == p.TipoProducto ? "elegida" : "")"
+                                @onclick="() => _datos.TipoProducto = p.TipoProducto">
+                            <strong>@(p.TipoProducto == TipoProducto.Queso ? "🧀" : "🥣") @p.TipoProducto</strong>
+                            <span>@Formato.Cantidad(p.LitrosPorUnidad) L por @p.Unidad · dura @p.VidaUtilDias días</span>
+                        </button>
+                    }
+                </div>
+
+                <label class="campo">
+                    <span>Litros de leche</span>
+                    <div class="acciones" style="flex-wrap:nowrap">
+                        <input type="number" min="0" step="0.5" @bind="_datos.Litros" @bind:event="oninput" />
+                        <button type="button" class="boton-mini" @onclick="() => _datos.Litros = _produccion.LitrosDisponibles">Todo</button>
+                    </div>
+                    <small>Disponibles: @Formato.Litros(_produccion.LitrosDisponibles)</small>
+                </label>
+
+                @if (Parametro is { } param && _datos.Litros > 0)
+                {
+                    <div class="panel panel-nota">
+                        Saldrán <strong>@Formato.Cantidad(Math.Round(_datos.Litros / param.LitrosPorUnidad, 3, MidpointRounding.ToZero)) @param.Unidad</strong>
+                        de @param.TipoProducto, que vencen el <strong>@Formato.Fecha(Estado.Dia.AddDays(param.VidaUtilDias))</strong>.
+                        @if (_datos.Litros > _produccion.LitrosDisponibles)
+                        {
+                            <br /><span style="color:var(--arcilla)">⚠ Es más leche de la disponible: la API lo va a rechazar (RN-02).</span>
+                        }
+                    </div>
+                }
+
+                <button type="button" class="boton boton-paja" disabled="@_ocupado" @onclick="TransformarAsync">Transformar</button>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <h2>Leche del día</h2>
+            <BarraLeche Produccion="_produccion" />
+        </aside>
+    </div>
+
+    <section class="seccion">
+        <h2>Lotes hechos con la leche de este día</h2>
+        @if (_lotes.Count == 0)
+        {
+            <div class="panel vacio"><span class="vacio-icono">📦</span><p>Todavía no hay lotes de este día.</p></div>
+        }
+        else
+        {
+            <TablaLotes Lotes="_lotes" />
+        }
+    </section>
+}
+
+@code {
+    private ProduccionDiaria? _produccion;
+    private Granja? _granja;
+    private List<Lote> _lotes = new();
+    private TransformarLeche _datos = new();
+    private ApiException? _error;
+    private bool _cargando = true;
+    private bool _ocupado;
+
+    private ParametroProducto? Parametro => _granja?.Productos.FirstOrDefault(p => p.TipoProducto == _datos.TipoProducto);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        _cargando = true;
+        try
+        {
+            var produccion = Api.ObtenerProduccionAsync(Estado.Dia);
+            var granja = Api.ObtenerGranjaAsync();
+            var lotes = Api.ListarLotesAsync(null, Estado.Dia, producidosEl: Estado.Dia);
+            await Task.WhenAll(produccion, granja, lotes);
+            (_produccion, _granja, _lotes) = (produccion.Result, granja.Result, lotes.Result);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task TransformarAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            _datos.Fecha = Estado.Dia;
+            var lote = await Api.TransformarAsync(_datos);
+            Estado.Exito($"Lote #{lote.Id}: {Formato.ConUnidad(lote.CantidadInicial, lote.TipoProducto)} de {lote.TipoProducto}, vence el {Formato.Fecha(lote.FechaVencimiento)}.");
+            _datos = new TransformarLeche { TipoProducto = _datos.TipoProducto };
+            await CargarAsync();
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
+    private async void AlCambiarDia()
+    {
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

@@ -75,6 +75,16 @@ namespace BaityMu.Services
             return new VacaDetalle(vaca, historial);
         }
 
+        /// <inheritdoc />
+        public async Task RetirarVacaAsync(int id, CancellationToken ct = default)
+        {
+            var granja = await ObtenerGranjaAsync(ct);
+            granja.RetirarVaca(id);
+
+            // EF detecta que Activa cambió y hace un UPDATE (no un DELETE).
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+
         /// <summary>Trae la granja con sus vacas, o lanza 404 si no se ha sembrado.</summary>
         private async Task<Granja> ObtenerGranjaAsync(CancellationToken ct) =>
             await _granjas.ObtenerConVacasAsync(ct)

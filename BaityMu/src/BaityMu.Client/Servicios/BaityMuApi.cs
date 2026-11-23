@@ -88,6 +88,9 @@ public sealed class BaityMuApi(HttpClient http)
     public Task<ResultadoVencimientos> ProcesarVencimientosAsync(DateOnly fecha) =>
         SendAsync<ResultadoVencimientos>(HttpMethod.Post, $"api/inventario/procesar-vencimientos?fecha={F(fecha)}");
 
+    public Task<List<Lote>> ProximosAVencerAsync(int dias, DateOnly fecha) =>
+        GetAsync<List<Lote>>($"api/inventario/proximos-a-vencer?dias={dias}&fecha={F(fecha)}");
+
     public Task<List<ResumenInventario>> ResumenInventarioAsync(DateOnly fecha) =>
         GetAsync<List<ResumenInventario>>($"api/inventario/resumen?fecha={F(fecha)}");
 

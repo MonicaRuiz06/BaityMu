@@ -52,6 +52,24 @@ else if (_lotes is null)
 }
 else
 {
+    @if (_proximos.Count > 0)
+    {
+        <section class="panel panel-nota" style="margin-bottom:16px">
+            <h3 style="margin-bottom:6px">⏰ Vencen en los próximos @DiasAviso días: véndelos primero</h3>
+            <ul style="margin:0;padding-left:18px">
+                @foreach (var l in _proximos)
+                {
+                    var faltan = l.FechaVencimiento.DayNumber - Estado.Dia.DayNumber;
+                    <li>
+                        Lote #@l.Id · @l.TipoProducto del @Formato.Fecha(l.FechaProduccion):
+                        <strong>@Formato.ConUnidad(l.CantidadDisponible, l.TipoProducto)</strong>,
+                        @(faltan == 0 ? "vence hoy" : faltan == 1 ? "vence mañana" : $"vence en {faltan} días") (@Formato.Fecha(l.FechaVencimiento)).
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
     <div class="grilla grilla-2">
         @foreach (var r in _resumen)
         {
@@ -98,6 +116,10 @@ else
     private ApiException? _error;
     private ResultadoVencimientos? _ultimoProceso;
     private bool _ocupado;
+    private List<Lote> _proximos = new();
+
+    /// <summary>Plazo del aviso de lotes próximos a vencer (el mismo valor por defecto de la API).</summary>
+    private const int DiasAviso = 3;
 
     /// <summary>El botón solo aparece cuando hay algo vencido sin procesar.</summary>
     private bool HayVencido => _resumen.Any(r => r.CantidadVencidaSinProcesar > 0);
@@ -115,8 +137,9 @@ else
         {
             var lotes = Api.ListarLotesAsync(_tipo, Estado.Dia);
             var resumen = Api.ResumenInventarioAsync(Estado.Dia);
-            await Task.WhenAll(lotes, resumen);
-            (_lotes, _resumen) = (lotes.Result, resumen.Result);
+            var proximos = Api.ProximosAVencerAsync(DiasAviso, Estado.Dia);
+            await Task.WhenAll(lotes, resumen, proximos);
+            (_lotes, _resumen, _proximos) = (lotes.Result, resumen.Result, proximos.Result);
         }
         catch (ApiException e)
         {

@@ -70,6 +70,30 @@ namespace BaityMu.Web.Controllers
             return Ok(_mapper.Map<LoteResponse>(lote));
         }
 
+        /// <summary>Lotes que vencen pronto, para venderlos antes de que se dañen (HU-12).</summary>
+        /// <remarks>
+        /// Trae los lotes con existencias que vencen entre la fecha y la fecha + <c>dias</c>
+        /// (incluidas), del que vence primero al que vence después. No aparecen los agotados
+        /// ni los ya vencidos. Escenario: consultando el 14 de diciembre con 3 días aparece
+        /// Y1 (vence el 16, quedan 30 L).
+        /// </remarks>
+        /// <param name="dias">Plazo en días. Por defecto 3.</param>
+        /// <param name="fecha">Fecha de consulta (yyyy-MM-dd). Por defecto, hoy.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">Los lotes (puede estar vacío).</response>
+        /// <response code="400">dias es negativo.</response>
+        [HttpGet("proximos-a-vencer")]
+        [ProducesResponseType<IReadOnlyList<LoteResponse>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<IReadOnlyList<LoteResponse>>> ProximosAVencer(
+            [FromQuery] int? dias,
+            [FromQuery] DateOnly? fecha,
+            CancellationToken ct)
+        {
+            var lotes = await _inventarioService.ListarProximosAVencerAsync(dias, fecha, ct);
+            return Ok(_mapper.Map<IReadOnlyList<LoteResponse>>(lotes));
+        }
+
         /// <summary>Resumen del inventario por producto (HU-10).</summary>
         /// <remarks>
         /// Para queso y yogurt: cuánto se puede vender, cuánto está vencido sin procesar y

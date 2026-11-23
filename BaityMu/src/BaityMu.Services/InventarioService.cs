@@ -53,6 +53,40 @@ namespace BaityMu.Services
             return new LoteConEstado(lote, lote.ObtenerEstado(fecha ?? _reloj.Today));
         }
 
+        /// <summary>Plazo que se usa cuando no se indica cuántos días (criterio 1 de la HU-12).</summary>
+        public const int DiasPorDefectoProximosAVencer = 3;
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Un lote entra si:
+        /// - tiene existencias (CantidadDisponible &gt; 0): uno agotado no se puede vender;
+        /// - no está vencido en la fecha (EstaVencido, RN-08): uno vencido ya no se puede salvar;
+        /// - su FechaVencimiento es a más tardar fecha + dias.
+        /// Con dias = 0 salen solo los que vencen hoy (todavía se venden ese día).
+        /// </remarks>
+        public async Task<IReadOnlyList<LoteConEstado>> ListarProximosAVencerAsync(
+            int? dias,
+            DateOnly? fecha,
+            CancellationToken ct = default)
+        {
+            var plazo = dias ?? DiasPorDefectoProximosAVencer;
+            if (plazo < 0)
+                throw new ReglaDeNegocioException("El número de días no puede ser negativo.");
+
+            var dia = fecha ?? _reloj.Today;
+            var limite = dia.AddDays(plazo);
+            var lotes = await _lotes.ListarAsync(null, null, null, ct);
+
+            return lotes
+                .Where(l => l.CantidadDisponible > 0
+                            && !l.EstaVencido(dia)
+                            && l.FechaVencimiento <= limite)
+                .OrderBy(l => l.FechaVencimiento)
+                .ThenBy(l => l.Id)
+                .Select(l => new LoteConEstado(l, l.ObtenerEstado(dia)))
+                .ToList();
+        }
+
         /// <inheritdoc />
         public async Task<IReadOnlyList<ResumenInventario>> ObtenerResumenAsync(DateOnly? fecha, CancellationToken ct = default)
         {

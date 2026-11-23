@@ -325,6 +325,14 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/ventas?desde=2026-12-01&hasta=2026-12-31&tipo=Queso
 Accept: application/json
 
+### HU-12 Lotes que vencen en los próximos 3 días, consultando el 14 dic → 200 (escenario: Y1 con 30 L, vence el 16)
+GET {{BaityMu.Web_HostAddress}}/api/inventario/proximos-a-vencer?dias=3&fecha=2026-12-14
+Accept: application/json
+
+### HU-12 Días negativos → 400
+GET {{BaityMu.Web_HostAddress}}/api/inventario/proximos-a-vencer?dias=-1
+Accept: application/json
+
 ### HU-15 Reporte de ventas de diciembre → 200 (escenario día 3: total $456.000)
 GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-01&hasta=2026-12-31
 Accept: application/json

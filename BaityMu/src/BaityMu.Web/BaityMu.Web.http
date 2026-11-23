@@ -76,4 +76,13 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/vacas/999
 Accept: application/json
 
+### HU-04 Retirar una vaca → 204 (después no sale en GET /api/vacas)
+DELETE {{BaityMu.Web_HostAddress}}/api/vacas/10
+
+### HU-04 Retirarla otra vez → 409
+DELETE {{BaityMu.Web_HostAddress}}/api/vacas/10
+
+### HU-04 Vaca inexistente → 404
+DELETE {{BaityMu.Web_HostAddress}}/api/vacas/999
+
 ###

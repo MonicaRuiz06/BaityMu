@@ -265,6 +265,33 @@ public sealed class ProductoTotal
     public decimal Dañado { get; set; }
 }
 
+public sealed class ReporteProductoDanado
+{
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public TipoProducto? TipoProducto { get; set; }
+    public List<LoteDanadoDelReporte> Lotes { get; set; } = new();
+    public List<TotalDanadoDelReporte> TotalesPorProducto { get; set; } = new();
+}
+
+public sealed class LoteDanadoDelReporte
+{
+    public int LoteId { get; set; }
+    public TipoProducto TipoProducto { get; set; }
+    public string Unidad { get; set; } = "";
+    public DateOnly FechaProduccion { get; set; }
+    public DateOnly FechaVencimiento { get; set; }
+    public decimal CantidadDañada { get; set; }
+}
+
+public sealed class TotalDanadoDelReporte
+{
+    public TipoProducto TipoProducto { get; set; }
+    public string Unidad { get; set; } = "";
+    public int NumeroLotes { get; set; }
+    public decimal Cantidad { get; set; }
+}
+
 public sealed class TotalVentasProducto
 {
     public TipoProducto TipoProducto { get; set; }

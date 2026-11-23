@@ -32,7 +32,7 @@
             <span>Hasta</span>
             <input type="date" @bind="_hasta" @bind:after="CargarAsync" />
         </label>
-        @if (_vista == Vista.Ventas)
+        @if (_vista is Vista.Ventas or Vista.Danado)
         {
             <div class="campo">
                 <span>Producto</span>
@@ -54,7 +54,7 @@
             <button type="button" class="@(_vista == Vista.Leche ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Leche)">🥛 Leche por día</button>
             <button type="button" class="@(_vista == Vista.Producto ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Producto)">🧀 Producto por día</button>
             <button type="button" class="@(_vista == Vista.Balance ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Balance)">⚖️ Balance</button>
-            <button type="button" disabled title="Llega con la HU-19">🗑️ Dañado</button>
+            <button type="button" class="@(_vista == Vista.Danado ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Danado)">🗑️ Dañado</button>
             <button type="button" disabled title="Llega con la HU-20">🐄 Vacas</button>
         </div>
     </div>
@@ -281,11 +281,61 @@
             </div>
         }
     }
+    else if (_vista == Vista.Danado && _danado is not null)
+    {
+        <p class="atenuada" style="margin:0 0 12px">
+            Las fechas filtran por <strong>fecha de vencimiento</strong>. Solo aparece lo que ya se procesó en
+            <a href="inventario">Inventario</a>: ahí es cuando lo vencido pasa a dañado.
+        </p>
+        <div class="grilla grilla-3">
+            @foreach (var tipo in Productos)
+            {
+                var t = _danado.TotalesPorProducto.FirstOrDefault(x => x.TipoProducto == tipo);
+                <Metrica Etiqueta="@($"{(tipo == TipoProducto.Queso ? "🧀" : "🥣")} {tipo} dañado")"
+                         Valor="@Formato.ConUnidad(t?.Cantidad ?? 0, tipo)"
+                         Nota="@TextoLotes(t?.NumeroLotes ?? 0)"
+                         Destacada="@((t?.Cantidad ?? 0) > 0)" />
+            }
+        </div>
+
+        @if (_danado.Lotes.Count == 0)
+        {
+            <SinDatos Icono="✨" Texto="@($"No se dañó producto con vencimiento entre el {Formato.Fecha(_desde)} y el {Formato.Fecha(_hasta)}.")" />
+        }
+        else
+        {
+            <div class="tabla-envoltura" style="margin-top:16px">
+                <table>
+                    <thead>
+                        <tr><th>Lote</th><th>Producto</th><th>Producido</th><th>Venció</th><th class="num">Dañado</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in _danado.Lotes)
+                        {
+                            <tr>
+                                <td>#@l.LoteId</td>
+                                <td><span class="insignia insignia-@l.TipoProducto.ToString().ToLowerInvariant()">@l.TipoProducto</span></td>
+                                <td>@Formato.Fecha(l.FechaProduccion)</td>
+                                <td>@Formato.Fecha(l.FechaVencimiento)</td>
+                                <td class="num" style="color:var(--arcilla);font-weight:600">@Formato.Cantidad(l.CantidadDañada) @l.Unidad</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        @foreach (var t in _danado.TotalesPorProducto)
+                        {
+                            <tr><th colspan="4">Total @t.TipoProducto</th><th class="num">@Formato.Cantidad(t.Cantidad) @t.Unidad</th></tr>
+                        }
+                    </tfoot>
+                </table>
+            </div>
+        }
+    }
 </section>
 
 @code {
     /// <summary>Los reportes que ya existen en la API. Cada HU agrega el suyo.</summary>
-    private enum Vista { Ventas, Leche, Producto, Balance }
+    private enum Vista { Ventas, Leche, Producto, Balance, Danado }
 
     private Vista _vista = Vista.Ventas;
     private DateOnly _desde;
@@ -295,6 +345,7 @@
     private ReporteLecheDiaria? _leche;
     private ReporteProductoDiario? _producto;
     private List<ProductoTotal>? _balance;
+    private ReporteProductoDanado? _danado;
 
     private bool HayVencidoSinProcesar => _balance?.Any(b => b.VencidoSinProcesar > 0) == true;
     private ApiException? _error;
@@ -366,6 +417,9 @@
                     break;
                 case Vista.Balance:
                     _balance = await Api.ReporteProductoTotalAsync(Estado.Dia);
+                    break;
+                case Vista.Danado:
+                    _danado = await Api.ReporteProductoDanadoAsync(_desde, _hasta, _tipo);
                     break;
             }
         }

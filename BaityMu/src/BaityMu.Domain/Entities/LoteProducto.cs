@@ -101,6 +101,30 @@ namespace BaityMu.Domain.Entities
         /// </summary>
         public bool EstaVencido(DateOnly fecha) => fecha > FechaVencimiento;
 
+        /// <summary>
+        /// Pasa a dañado lo que queda del lote porque ya venció (HU-11, RN-08).
+        /// </summary>
+        /// <param name="fecha">Día en que se procesan los vencimientos.</param>
+        /// <returns>
+        /// La cantidad que pasó a dañada. 0 si el lote ya estaba agotado o ya se había
+        /// procesado, así que procesar dos veces no duplica el producto dañado.
+        /// </returns>
+        /// <exception cref="ReglaDeNegocioException">
+        /// Si el lote todavía no está vencido en esa fecha. El mismo día del vencimiento
+        /// todavía se puede vender, así que no se daña.
+        /// </exception>
+        public decimal MarcarComoDanado(DateOnly fecha)
+        {
+            if (!EstaVencido(fecha))
+                throw new ReglaDeNegocioException(
+                    $"El lote {Id} vence el {FechaVencimiento:yyyy-MM-dd}: el {fecha:yyyy-MM-dd} todavía no está vencido.");
+
+            var cantidad = CantidadDisponible;
+            CantidadDanada += cantidad;
+            CantidadDisponible = 0;
+            return cantidad;
+        }
+
         /// <summary>Estado del lote en una fecha (HU-10).</summary>
         /// <param name="fecha">Día de la consulta.</param>
         /// <returns>

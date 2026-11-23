@@ -1,4 +1,4 @@
-// Modelos del front: la misma forma que los DTOs que devuelve la API.
+﻿// Modelos del front: la misma forma que los DTOs que devuelve la API.
 //
 // ¿Por qué no se referencia BaityMu.Services para reutilizar sus DTOs?
 // Porque el front corre en el navegador y solo debe conocer el "contrato" HTTP de la API,
@@ -138,6 +138,27 @@ public sealed class Lote
     public decimal CantidadDisponible { get; set; }
     public decimal CantidadDanada { get; set; }
     public EstadoLote Estado { get; set; }
+}
+
+public sealed class ResultadoVencimientos
+{
+    public DateOnly Fecha { get; set; }
+    public List<LoteDañado> Lotes { get; set; } = new();
+    public List<TotalDañado> TotalesPorProducto { get; set; } = new();
+}
+
+public sealed class LoteDañado
+{
+    public int LoteId { get; set; }
+    public TipoProducto TipoProducto { get; set; }
+    public DateOnly FechaVencimiento { get; set; }
+    public decimal CantidadDañada { get; set; }
+}
+
+public sealed class TotalDañado
+{
+    public TipoProducto TipoProducto { get; set; }
+    public decimal CantidadDañada { get; set; }
 }
 
 public sealed class ResumenInventario

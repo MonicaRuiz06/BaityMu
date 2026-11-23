@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -84,6 +84,9 @@ public sealed class BaityMuApi(HttpClient http)
             url += $"&desde={F(dia)}&hasta={F(dia)}";
         return GetAsync<List<Lote>>(url);
     }
+
+    public Task<ResultadoVencimientos> ProcesarVencimientosAsync(DateOnly fecha) =>
+        SendAsync<ResultadoVencimientos>(HttpMethod.Post, $"api/inventario/procesar-vencimientos?fecha={F(fecha)}");
 
     public Task<List<ResumenInventario>> ResumenInventarioAsync(DateOnly fecha) =>
         GetAsync<List<ResumenInventario>>($"api/inventario/resumen?fecha={F(fecha)}");

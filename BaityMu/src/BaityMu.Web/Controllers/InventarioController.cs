@@ -87,5 +87,28 @@ namespace BaityMu.Web.Controllers
             var resumen = await _inventarioService.ObtenerResumenAsync(fecha, ct);
             return Ok(_mapper.Map<IReadOnlyList<ResumenInventarioResponse>>(resumen));
         }
+
+        /// <summary>Procesa los vencimientos: lo vencido pasa a dañado (HU-11).</summary>
+        /// <remarks>
+        /// Cada lote con existencias cuya fecha de vencimiento ya pasó (**fecha &gt; vencimiento**)
+        /// deja su cantidad disponible en 0 y la suma a la cantidad dañada (RN-08). Un lote que
+        /// vence ese mismo día todavía no se daña.
+        ///
+        /// Se puede llamar varias veces: lo ya procesado no se vuelve a dañar.
+        ///
+        /// Escenario del taller: el **2026-12-17**, los 30 L que quedan de Y1 pasan a dañados.
+        /// </remarks>
+        /// <param name="fecha">Día del proceso (yyyy-MM-dd). Por defecto, hoy.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">Los lotes afectados y el total dañado por producto.</response>
+        [HttpPost("procesar-vencimientos")]
+        [ProducesResponseType<ProcesarVencimientosResponse>(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ProcesarVencimientosResponse>> ProcesarVencimientos(
+            [FromQuery] DateOnly? fecha,
+            CancellationToken ct)
+        {
+            var resultado = await _inventarioService.ProcesarVencimientosAsync(fecha, ct);
+            return Ok(_mapper.Map<ProcesarVencimientosResponse>(resultado));
+        }
     }
 }

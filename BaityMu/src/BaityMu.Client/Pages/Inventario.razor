@@ -11,7 +11,36 @@
         <h1>Inventario al @Formato.Fecha(Estado.Dia)</h1>
         <p>Los lotes en el orden en que se venden (FIFO: el más antiguo primero). Un lote está vencido cuando el día pasa su fecha de vencimiento.</p>
     </div>
+    @if (HayVencido)
+    {
+        <button type="button" class="boton boton-peligro" disabled="@_ocupado" @onclick="ProcesarVencimientosAsync">
+            🗑️ Procesar vencimientos del @Formato.Fecha(Estado.Dia)
+        </button>
+    }
 </div>
+
+@if (_ultimoProceso is not null)
+{
+    <section class="panel panel-nota" style="margin-bottom:16px">
+        <div class="barra-herramientas" style="margin-bottom:6px">
+            <h3>Vencimientos procesados el @Formato.Fecha(_ultimoProceso.Fecha)</h3>
+            <button type="button" class="boton-mini" @onclick="() => _ultimoProceso = null">Cerrar</button>
+        </div>
+        @if (_ultimoProceso.Lotes.Count == 0)
+        {
+            <p>No había lotes vencidos con existencias. No se dañó nada.</p>
+        }
+        else
+        {
+            <ul style="margin:0;padding-left:18px">
+                @foreach (var l in _ultimoProceso.Lotes)
+                {
+                    <li>Lote #@l.LoteId (@l.TipoProducto, venció el @Formato.Fecha(l.FechaVencimiento)): <strong>@Formato.ConUnidad(l.CantidadDañada, l.TipoProducto)</strong> pasaron a dañado.</li>
+                }
+            </ul>
+        }
+    </section>
+}
 
 @if (_error is not null)
 {
@@ -67,6 +96,11 @@ else
     private List<ResumenInventario> _resumen = new();
     private TipoProducto? _tipo;
     private ApiException? _error;
+    private ResultadoVencimientos? _ultimoProceso;
+    private bool _ocupado;
+
+    /// <summary>El botón solo aparece cuando hay algo vencido sin procesar.</summary>
+    private bool HayVencido => _resumen.Any(r => r.CantidadVencidaSinProcesar > 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +124,29 @@ else
         }
     }
 
+    private async Task ProcesarVencimientosAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            _ultimoProceso = await Api.ProcesarVencimientosAsync(Estado.Dia);
+            var total = _ultimoProceso.TotalesPorProducto.Where(t => t.CantidadDañada > 0)
+                .Select(t => Formato.ConUnidad(t.CantidadDañada, t.TipoProducto) + " de " + t.TipoProducto.ToString().ToLowerInvariant());
+            Estado.Exito(_ultimoProceso.Lotes.Count == 0
+                ? "No había nada vencido para procesar."
+                : "Pasaron a dañado: " + string.Join(" y ", total) + ".");
+            await CargarAsync();
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
     private async Task FiltrarAsync(TipoProducto? tipo)
     {
         _tipo = tipo;
@@ -98,6 +155,7 @@ else
 
     private async void AlCambiarDia()
     {
+        _ultimoProceso = null;
         await CargarAsync();
         StateHasChanged();
     }

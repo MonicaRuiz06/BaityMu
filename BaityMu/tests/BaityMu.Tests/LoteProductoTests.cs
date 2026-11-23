@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Enums;
 using BaityMu.Domain.Exceptions;
 
@@ -101,6 +101,49 @@ namespace BaityMu.Tests
             // Assert (RN-08: vencido cuando fecha > vencimiento)
             Assert.That(lote.EstaVencido(new DateOnly(2026, 12, 16)), Is.False);
             Assert.That(lote.EstaVencido(new DateOnly(2026, 12, 17)), Is.True);
+        }
+
+        // ----------------------------------------------------------------------------
+        // HU-11 Procesar vencimientos
+        // ----------------------------------------------------------------------------
+
+        [Test]
+        public void MarcarComoDanado_LoteVencido_PasaLoDisponibleADanado()
+        {
+            // Arrange: Y1 vence el 2026-12-16
+            var y1 = LoteProducto.Crear(_yogurt, Dia1, 50m, litrosProducidosEseDia: 150m, litrosYaTransformados: 0m);
+
+            // Act
+            var danado = y1.MarcarComoDanado(new DateOnly(2026, 12, 17));
+
+            // Assert (RN-08)
+            Assert.That(danado, Is.EqualTo(50m));
+            Assert.That(y1.CantidadDisponible, Is.EqualTo(0m));
+            Assert.That(y1.CantidadDanada, Is.EqualTo(50m));
+            Assert.That(y1.ObtenerEstado(new DateOnly(2026, 12, 17)), Is.EqualTo(EstadoLote.Dañado));
+        }
+
+        [Test]
+        public void MarcarComoDanado_ElMismoDiaDelVencimiento_LanzaReglaDeNegocio()
+        {
+            // Criterio 3: el día del vencimiento todavía no está vencido
+            var y1 = LoteProducto.Crear(_yogurt, Dia1, 50m, litrosProducidosEseDia: 150m, litrosYaTransformados: 0m);
+
+            Assert.Throws<ReglaDeNegocioException>(() => y1.MarcarComoDanado(new DateOnly(2026, 12, 16)));
+            Assert.That(y1.CantidadDisponible, Is.EqualTo(50m));
+        }
+
+        [Test]
+        public void MarcarComoDanado_DosVeces_NoDuplicaLoDanado()
+        {
+            var y1 = LoteProducto.Crear(_yogurt, Dia1, 50m, litrosProducidosEseDia: 150m, litrosYaTransformados: 0m);
+            var dia17 = new DateOnly(2026, 12, 17);
+            y1.MarcarComoDanado(dia17);
+
+            var segundaVez = y1.MarcarComoDanado(dia17);
+
+            Assert.That(segundaVez, Is.EqualTo(0m));
+            Assert.That(y1.CantidadDanada, Is.EqualTo(50m));
         }
     }
 }

@@ -264,4 +264,13 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/inventario/resumen?fecha=2026-12-17
 Accept: application/json
 
+### HU-11 Procesar vencimientos el día 16 → 200, nada se daña (Y1 vence ese día)
+POST {{BaityMu.Web_HostAddress}}/api/inventario/procesar-vencimientos?fecha=2026-12-16
+
+### HU-11 Escenario día 17: procesar vencimientos → 200, lo que queda de Y1 pasa a dañado
+POST {{BaityMu.Web_HostAddress}}/api/inventario/procesar-vencimientos?fecha=2026-12-17
+
+### HU-11 Procesar otra vez el día 17 → 200, no se duplica nada
+POST {{BaityMu.Web_HostAddress}}/api/inventario/procesar-vencimientos?fecha=2026-12-17
+
 ###

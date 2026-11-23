@@ -106,5 +106,27 @@ namespace BaityMu.Web.Controllers
             [FromQuery] DateOnly? fecha,
             CancellationToken ct) =>
             Ok(await _reportes.ProductoTotalAsync(fecha, ct));
+
+        /// <summary>Producto que se perdió por vencimiento, lote por lote (HU-19).</summary>
+        /// <remarks>
+        /// El rango se aplica a la **fecha de vencimiento**. Solo salen los lotes a los que ya se
+        /// les procesó el vencimiento (POST /api/inventario/procesar-vencimientos).
+        /// Escenario: después de procesar el día 17 aparece Y1 con **30 L** de yogurt (venció el 16).
+        /// </remarks>
+        /// <param name="desde">Fecha de vencimiento mínima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="hasta">Fecha de vencimiento máxima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="tipo">Solo "Queso" o solo "Yogurt". Opcional.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">El reporte (con listas vacías si no hubo daño).</response>
+        /// <response code="400">'desde' es posterior a 'hasta', o un filtro no es válido.</response>
+        [HttpGet("producto-danado")]
+        [ProducesResponseType<ReporteProductoDanadoResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<ReporteProductoDanadoResponse>> ProductoDanado(
+            [FromQuery] DateOnly? desde,
+            [FromQuery] DateOnly? hasta,
+            [FromQuery] TipoProducto? tipo,
+            CancellationToken ct) =>
+            Ok(await _reportes.ProductoDanadoAsync(desde, hasta, tipo, ct));
     }
 }

@@ -224,6 +224,79 @@ namespace BaityMu.Infrastructure.Data.Migrations
                     b.ToTable("Vacas", (string)null);
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.Venta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<DateOnly>("Fecha")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TipoProducto")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha", "TipoProducto");
+
+                    b.ToTable("Ventas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Ventas_Cantidad", "[Cantidad] > 0");
+
+                            t.HasCheckConstraint("CK_Ventas_PrecioUnitario", "[PrecioUnitario] >= 0");
+
+                            t.HasCheckConstraint("CK_Ventas_Total", "[Total] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("BaityMu.Domain.Entities.VentaDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<int>("LoteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LoteId");
+
+                    b.HasIndex("VentaId", "LoteId")
+                        .IsUnique();
+
+                    b.ToTable("VentaDetalles", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_VentaDetalles_Cantidad", "[Cantidad] > 0");
+                        });
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.ParametroProducto", b =>
                 {
                     b.HasOne("BaityMu.Domain.Entities.Granja", null)
@@ -251,11 +324,33 @@ namespace BaityMu.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.VentaDetalle", b =>
+                {
+                    b.HasOne("BaityMu.Domain.Entities.LoteProducto", "Lote")
+                        .WithMany()
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BaityMu.Domain.Entities.Venta", null)
+                        .WithMany("Detalles")
+                        .HasForeignKey("VentaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lote");
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.Granja", b =>
                 {
                     b.Navigation("Productos");
 
                     b.Navigation("Vacas");
+                });
+
+            modelBuilder.Entity("BaityMu.Domain.Entities.Venta", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 #pragma warning restore 612, 618
         }

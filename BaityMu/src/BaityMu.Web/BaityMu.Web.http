@@ -89,4 +89,37 @@ DELETE {{BaityMu.Web_HostAddress}}/api/vacas/999
 GET {{BaityMu.Web_HostAddress}}/api/granja
 Accept: application/json
 
+### HU-06 Cambiar el precio del yogurt → 200
+PUT {{BaityMu.Web_HostAddress}}/api/granja
+Content-Type: application/json
+
+{
+  "productos": [
+    { "tipoProducto": "Yogurt", "litrosPorUnidad": 1, "vidaUtilDias": 15, "precioUnitario": 6500 }
+  ]
+}
+
+### HU-06 Valor inválido (vida útil 0) → 400 y no cambia nada
+PUT {{BaityMu.Web_HostAddress}}/api/granja
+Content-Type: application/json
+
+{
+  "litrosPorVaca": 16,
+  "productos": [
+    { "tipoProducto": "Queso", "litrosPorUnidad": 10, "vidaUtilDias": 0, "precioUnitario": 28000 }
+  ]
+}
+
+### HU-06 Volver a los valores del taller → 200
+PUT {{BaityMu.Web_HostAddress}}/api/granja
+Content-Type: application/json
+
+{
+  "litrosPorVaca": 15,
+  "productos": [
+    { "tipoProducto": "Queso", "unidad": "kg", "litrosPorUnidad": 10, "vidaUtilDias": 30, "precioUnitario": 28000 },
+    { "tipoProducto": "Yogurt", "unidad": "L", "litrosPorUnidad": 1, "vidaUtilDias": 15, "precioUnitario": 6000 }
+  ]
+}
+
 ###

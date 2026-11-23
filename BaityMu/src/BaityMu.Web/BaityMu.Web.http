@@ -325,4 +325,16 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/ventas?desde=2026-12-01&hasta=2026-12-31&tipo=Queso
 Accept: application/json
 
+### HU-15 Reporte de ventas de diciembre → 200 (escenario día 3: total $456.000)
+GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-01&hasta=2026-12-31
+Accept: application/json
+
+### HU-15 Reporte de ventas solo de yogurt → 200
+GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?tipo=Yogurt
+Accept: application/json
+
+### HU-15 Rango al revés → 400
+GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-31&hasta=2026-12-01
+Accept: application/json
+
 ###

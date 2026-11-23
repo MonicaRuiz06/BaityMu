@@ -337,4 +337,8 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-31&hasta=2026-12-01
 Accept: application/json
 
+### HU-16 Leche por día de diciembre → 200 (escenario: 150 L el día 1 y el día 2, 0 L sin aprovechar)
+GET {{BaityMu.Web_HostAddress}}/api/reportes/leche-diaria?desde=2026-12-01&hasta=2026-12-31
+Accept: application/json
+
 ###

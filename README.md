@@ -173,6 +173,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | POST | `/api/transformaciones` | Transforma leche de un día en un lote de queso o yogurt; nunca más de lo producido (HU-09) · 201, 400, 409 |
 | GET | `/api/inventario?tipoProducto=&desde=&hasta=&fecha=` | Lotes con su estado (Disponible, Agotado, Vencido o Dañado) en orden FIFO (HU-10) · 200, 400 |
 | GET | `/api/inventario/lotes/{id}` | Un lote con su estado (HU-10) · 200, 404 |
+| GET | `/api/inventario/proximos-a-vencer?dias=3&fecha=` | Lotes con existencias que vencen en los próximos días; no salen agotados ni vencidos (HU-12) · 200, 400 |
 | POST | `/api/inventario/procesar-vencimientos?fecha=` | Lo vencido pasa a dañado; repetirlo no duplica (HU-11) · 200 |
 | GET | `/api/inventario/resumen?fecha=` | Por producto: vendible, vencido sin procesar y dañado (HU-10) · 200 |
 | POST | `/api/ventas` | Vende queso o yogurt en orden FIFO, con el detalle de los lotes; 409 si no alcanza (HU-13) · 201, 400, 409 |

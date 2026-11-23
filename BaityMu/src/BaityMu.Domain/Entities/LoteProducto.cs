@@ -102,6 +102,38 @@ namespace BaityMu.Domain.Entities
         public bool EstaVencido(DateOnly fecha) => fecha > FechaVencimiento;
 
         /// <summary>
+        /// Saca producto del lote por una venta (HU-13). Lo usa solo <see cref="Venta"/>.
+        /// </summary>
+        /// <param name="cantidad">Cantidad a descontar. Mayor que 0 y no más de lo disponible.</param>
+        /// <param name="fecha">Día de la venta.</param>
+        /// <exception cref="ReglaDeNegocioException">
+        /// Si la cantidad no es válida, si el lote está vencido o si se produjo después
+        /// de la venta. Venta nunca llega a estos casos porque filtra antes; es una
+        /// protección extra del lote.
+        /// </exception>
+        internal void Descontar(decimal cantidad, DateOnly fecha)
+        {
+            if (cantidad <= 0 || cantidad > CantidadDisponible)
+                throw new ReglaDeNegocioException(
+                    $"No se pueden descontar {cantidad} del lote {Id}: tiene {CantidadDisponible} disponibles.");
+
+            if (EstaVencido(fecha))
+                throw new ReglaDeNegocioException($"El lote {Id} está vencido: no se puede vender (RN-08).");
+
+            if (FechaProduccion > fecha)
+                throw new ReglaDeNegocioException($"El lote {Id} se produjo después de la fecha de la venta.");
+
+            CantidadDisponible -= cantidad;
+        }
+
+        /// <summary>
+        /// Indica si el lote se puede vender en una fecha (HU-13): tiene existencias, ya
+        /// existía ese día y no está vencido.
+        /// </summary>
+        public bool EsVendible(DateOnly fecha) =>
+            CantidadDisponible > 0 && FechaProduccion <= fecha && !EstaVencido(fecha);
+
+        /// <summary>
         /// Pasa a dañado lo que queda del lote porque ya venció (HU-11, RN-08).
         /// </summary>
         /// <param name="fecha">Día en que se procesan los vencimientos.</param>

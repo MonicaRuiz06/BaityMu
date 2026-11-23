@@ -337,6 +337,10 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-31&hasta=2026-12-01
 Accept: application/json
 
+### HU-20 Reporte de vacas de diciembre → 200 (promedio, mayor, menor y las que están por debajo)
+GET {{BaityMu.Web_HostAddress}}/api/reportes/vacas?desde=2026-12-01&hasta=2026-12-31
+Accept: application/json
+
 ### HU-19 Producto dañado que venció en diciembre → 200 (escenario, tras procesar el día 17: Y1 con 30 L)
 GET {{BaityMu.Web_HostAddress}}/api/reportes/producto-danado?desde=2026-12-01&hasta=2026-12-31
 Accept: application/json

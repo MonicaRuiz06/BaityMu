@@ -47,7 +47,7 @@ namespace BaityMu.Tests
             _inventario = new InventarioService(lotes, unitOfWork, _reloj);
             var ventas = new VentaRepository(_db);
             _ventas = new VentaService(granjas, lotes, ventas, unitOfWork, _reloj);
-            _reportes = new ReporteService(ventas, producciones, lotes);
+            _reportes = new ReporteService(granjas, ventas, producciones, lotes);
             _granja = new GranjaService(granjas, producciones, unitOfWork, _reloj);
 
             var granja = new Granja("Granja BaityMu", 15m);
@@ -352,6 +352,44 @@ namespace BaityMu.Tests
         {
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _reportes.LecheDiariaAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1)));
+        }
+
+        // ------------------------------------------------------------ HU-17 Reporte de producto por día
+
+        [Test]
+        public async Task ReporteProductoDiario_CoincideConElEscenario()
+        {
+            await HastaElDia3Async();
+
+            var reporte = await _reportes.ProductoDiarioAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 31));
+
+            // Día 1: 10 kg de queso y 50 L de yogurt; día 2: 15 kg de queso.
+            // La cantidad es la elaborada: las ventas del día 3 no la cambian.
+            Assert.That(reporte.Dias.Select(d => (d.Fecha, d.TipoProducto, d.Cantidad, d.Unidad, d.LitrosUsados)),
+                Is.EqualTo(new (DateOnly?, TipoProducto, decimal, string, decimal)[]
+                {
+                    (new DateOnly(2026, 12, 1), TipoProducto.Queso, 10m, "kg", 100m),
+                    (new DateOnly(2026, 12, 1), TipoProducto.Yogurt, 50m, "L", 50m),
+                    (new DateOnly(2026, 12, 2), TipoProducto.Queso, 15m, "kg", 150m),
+                }));
+            Assert.That(reporte.TotalesPorProducto.Select(t => (t.TipoProducto, t.Cantidad, t.NumeroLotes)),
+                Is.EqualTo(new[] { (TipoProducto.Queso, 25m, 2), (TipoProducto.Yogurt, 50m, 1) }));
+        }
+
+        [Test]
+        public async Task ReporteProductoDiario_SinLotes_DevuelveListasVacias()
+        {
+            var reporte = await _reportes.ProductoDiarioAsync(null, null);
+
+            Assert.That(reporte.Dias, Is.Empty);
+            Assert.That(reporte.TotalesPorProducto, Is.Empty);
+        }
+
+        [Test]
+        public void ReporteProductoDiario_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _reportes.ProductoDiarioAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1)));
         }
     }
 }

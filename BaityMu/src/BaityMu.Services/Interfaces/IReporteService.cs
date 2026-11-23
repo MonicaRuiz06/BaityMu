@@ -42,5 +42,12 @@ namespace BaityMu.Services.Interfaces
             DateOnly? desde,
             DateOnly? hasta,
             CancellationToken ct = default);
+
+        /// <summary>Balance de cada producto desde el inicio: producido, vendido, disponible y dañado (HU-18).</summary>
+        /// <remarks>Lo "disponible" depende de la fecha: un lote vencido en esa fecha ya no cuenta.</remarks>
+        /// <param name="fecha">Fecha de consulta, o null para usar la fecha de hoy (IClock, RN-10).</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>Un renglón por producto configurado, aunque todo esté en 0.</returns>
+        Task<IReadOnlyList<ProductoTotalItem>> ProductoTotalAsync(DateOnly? fecha = null, CancellationToken ct = default);
     }
 }

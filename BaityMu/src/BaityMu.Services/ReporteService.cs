@@ -25,18 +25,21 @@ namespace BaityMu.Services
         private readonly IVentaRepository _ventas;
         private readonly IProduccionRepository _producciones;
         private readonly ILoteRepository _lotes;
+        private readonly IClock _reloj;
 
         /// <summary>Recibe sus dependencias por inyección de dependencias.</summary>
         public ReporteService(
             IGranjaRepository granjas,
             IVentaRepository ventas,
             IProduccionRepository producciones,
-            ILoteRepository lotes)
+            ILoteRepository lotes,
+            IClock reloj)
         {
             _granjas = granjas;
             _ventas = ventas;
             _producciones = producciones;
             _lotes = lotes;
+            _reloj = reloj;
         }
 
         /// <inheritdoc />
@@ -167,6 +170,44 @@ namespace BaityMu.Services
                     .Select(g => Elaborado(null, g.Key, g, unidades))
                     .ToList(),
             };
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// - Producido: suma de CantidadInicial de los lotes.
+        /// - Vendido: suma de las ventas (no se deduce de los lotes: se toma de las ventas reales).
+        /// - Disponible / VencidoSinProcesar: lo que queda en los lotes, separado según si el
+        ///   lote está vencido hoy (LoteProducto.EstaVencido, RN-08).
+        /// - Dañado: suma de CantidadDanada.
+        /// Salen todos los productos configurados en la granja, aunque no tengan lotes (en 0).
+        /// </remarks>
+        public async Task<IReadOnlyList<ProductoTotalItem>> ProductoTotalAsync(DateOnly? fecha = null, CancellationToken ct = default)
+        {
+            var hoy = fecha ?? _reloj.Today;
+            var lotes = await _lotes.ListarAsync(null, null, null, ct);
+            var ventas = await _ventas.ListarAsync(null, null, null, ct);
+            var unidades = await UnidadesAsync(ct);
+
+            // Productos configurados + los que tengan lotes (por si alguno se quitó de la granja).
+            var tipos = unidades.Keys
+                .Concat(lotes.Select(l => l.TipoProducto))
+                .Distinct()
+                .OrderBy(t => t);
+
+            return tipos.Select(tipo =>
+            {
+                var delTipo = lotes.Where(l => l.TipoProducto == tipo).ToList();
+                return new ProductoTotalItem
+                {
+                    TipoProducto = tipo,
+                    Unidad = unidades.GetValueOrDefault(tipo, string.Empty),
+                    Producido = delTipo.Sum(l => l.CantidadInicial),
+                    Vendido = ventas.Where(v => v.TipoProducto == tipo).Sum(v => v.Cantidad),
+                    Disponible = delTipo.Where(l => !l.EstaVencido(hoy)).Sum(l => l.CantidadDisponible),
+                    VencidoSinProcesar = delTipo.Where(l => l.EstaVencido(hoy)).Sum(l => l.CantidadDisponible),
+                    Dañado = delTipo.Sum(l => l.CantidadDanada),
+                };
+            }).ToList();
         }
 
         /// <summary>Suma un grupo de lotes en un renglón del reporte de producto.</summary>

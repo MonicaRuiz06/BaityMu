@@ -1,4 +1,4 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Domain.Interfaces;
 using BaityMu.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -17,12 +17,15 @@ namespace BaityMu.Infrastructure.Repositories
 
         /// <inheritdoc />
         /// <remarks>
-        /// Include(g => g.Vacas) le pide a EF que traiga también las vacas en la misma
-        /// consulta (un JOIN). Sin él, la lista de vacas llegaría vacía y n sería 0.
+        /// Include le pide a EF que traiga también las vacas y los productos. Sin él, esas
+        /// listas llegarían vacías y n sería 0. AsSplitQuery hace una consulta por cada
+        /// lista en vez de un solo JOIN gigante (vacas × productos).
         /// </remarks>
-        public Task<Granja?> ObtenerConVacasAsync(CancellationToken ct = default) =>
+        public Task<Granja?> ObtenerCompletaAsync(CancellationToken ct = default) =>
             Db.Granjas
                 .Include(g => g.Vacas)
+                .Include(g => g.Productos)
+                .AsSplitQuery()
                 .OrderBy(g => g.Id)
                 .FirstOrDefaultAsync(ct);
     }

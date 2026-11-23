@@ -93,7 +93,7 @@ namespace BaityMu.Tests
 
             // Assert: se vuelve a leer desde la base de datos
             _db.ChangeTracker.Clear();
-            var granja = await new GranjaRepository(_db).ObtenerConVacasAsync();
+            var granja = await new GranjaRepository(_db).ObtenerCompletaAsync();
             Assert.That(granja!.NumeroVacas, Is.EqualTo(2));
         }
 
@@ -249,7 +249,7 @@ namespace BaityMu.Tests
 
             // Assert: se vuelve a leer desde la base de datos
             _db.ChangeTracker.Clear();
-            var granja = await new GranjaRepository(_db).ObtenerConVacasAsync();
+            var granja = await new GranjaRepository(_db).ObtenerCompletaAsync();
             Assert.That(granja!.NumeroVacas, Is.EqualTo(1));
             Assert.That(granja.Vacas.Single(v => v.Id == lola.Id).Activa, Is.False);
             Assert.That(await _db.Vacas.CountAsync(), Is.EqualTo(2), "La vaca no se borra");

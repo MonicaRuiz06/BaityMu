@@ -42,5 +42,19 @@ namespace BaityMu.Domain.Interfaces
             DateOnly? desde,
             DateOnly? hasta,
             CancellationToken ct = default);
+
+        /// <summary>
+        /// Lotes que tienen producto dañado (CantidadDanada &gt; 0), ordenados por fecha de
+        /// vencimiento (HU-19). Cada filtro en null significa "sin filtrar".
+        /// </summary>
+        /// <param name="tipoProducto">Solo queso o solo yogurt.</param>
+        /// <param name="desde">Fecha de vencimiento mínima (incluida).</param>
+        /// <param name="hasta">Fecha de vencimiento máxima (incluida).</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        Task<IReadOnlyList<LoteProducto>> ListarDanadosAsync(
+            TipoProducto? tipoProducto,
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default);
     }
 }

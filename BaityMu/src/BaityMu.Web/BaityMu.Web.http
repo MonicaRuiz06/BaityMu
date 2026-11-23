@@ -85,4 +85,8 @@ DELETE {{BaityMu.Web_HostAddress}}/api/vacas/10
 ### HU-04 Vaca inexistente → 404
 DELETE {{BaityMu.Web_HostAddress}}/api/vacas/999
 
+### HU-05 Consultar la configuración de la granja → 200 (n × l = 150 L)
+GET {{BaityMu.Web_HostAddress}}/api/granja
+Accept: application/json
+
 ###

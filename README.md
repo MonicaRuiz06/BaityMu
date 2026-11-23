@@ -132,6 +132,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/` | Bienvenida de la API (¡Muuu!) |
+| GET | `/api/granja` | Configuración de la granja: n, l, n × l y parámetros de queso y yogurt (HU-05) · 200 |
 | GET | `/api/vacas?incluirRetiradas=` | Lista las vacas con los litros que ha dado cada una (HU-02) · 200 |
 | GET | `/api/vacas/{id}` | Consulta una vaca con su producción total y la de cada día (HU-03) · 200, 404 |
 | DELETE | `/api/vacas/{id}` | Retira una vaca: queda inactiva y conserva su historial (HU-04) · 204, 400, 404, 409 |

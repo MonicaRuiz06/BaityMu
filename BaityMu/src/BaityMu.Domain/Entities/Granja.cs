@@ -1,4 +1,5 @@
-﻿using BaityMu.Domain.Exceptions;
+﻿using BaityMu.Domain.Enums;
+using BaityMu.Domain.Exceptions;
 
 namespace BaityMu.Domain.Entities
 {
@@ -8,6 +9,7 @@ namespace BaityMu.Domain.Entities
     public class Granja
     {
         private readonly List<Vaca> _vacas = new();
+        private readonly List<ParametroProducto> _productos = new();
 
         public int Id { get; private set; }
         public string Nombre { get; private set; } = string.Empty;
@@ -15,8 +17,17 @@ namespace BaityMu.Domain.Entities
 
         public IReadOnlyCollection<Vaca> Vacas => _vacas;
 
+        /// <summary>Parámetros de cada producto (queso y yogurt).</summary>
+        public IReadOnlyCollection<ParametroProducto> Productos => _productos;
+
         /// <summary>n: número de vacas activas. Se calcula, no se guarda en la base de datos.</summary>
         public int NumeroVacas => _vacas.Count(v => v.Activa);
+
+        /// <summary>
+        /// Producción diaria esperada: n × l (RN-01). En el escenario de referencia,
+        /// 10 vacas × 15 L = 150 L. Se calcula, no se guarda.
+        /// </summary>
+        public decimal ProduccionDiariaEsperada => NumeroVacas * LitrosPorVaca;
 
         // Constructor vacío privado requerido por EF Core
         private Granja() { }
@@ -32,6 +43,34 @@ namespace BaityMu.Domain.Entities
             Nombre = nombre.Trim();
             LitrosPorVaca = litrosPorVaca;
         }
+
+        /// <summary>
+        /// Agrega los parámetros de un producto (rendimiento, vida útil y precio). Se usa
+        /// al sembrar la granja desde appsettings.json (HU-05).
+        /// </summary>
+        /// <returns>Los parámetros creados.</returns>
+        /// <exception cref="ReglaDeNegocioException">Si algún valor no es válido (400).</exception>
+        /// <exception cref="ConflictoException">Si ese producto ya está configurado (409).</exception>
+        public ParametroProducto AgregarProducto(
+            TipoProducto tipoProducto,
+            string unidad,
+            decimal litrosPorUnidad,
+            int vidaUtilDias,
+            decimal precioUnitario)
+        {
+            if (_productos.Any(p => p.TipoProducto == tipoProducto))
+                throw new ConflictoException($"El producto {tipoProducto} ya está configurado en la granja.");
+
+            var producto = new ParametroProducto(tipoProducto, unidad, litrosPorUnidad, vidaUtilDias, precioUnitario);
+            _productos.Add(producto);
+            return producto;
+        }
+
+        /// <summary>Busca los parámetros de un producto.</summary>
+        /// <exception cref="RecursoNoEncontradoException">Si el producto no está configurado (404).</exception>
+        public ParametroProducto ObtenerProducto(TipoProducto tipoProducto) =>
+            _productos.FirstOrDefault(p => p.TipoProducto == tipoProducto)
+                ?? throw new RecursoNoEncontradoException($"El producto {tipoProducto} no está configurado en la granja.");
 
         /// <summary>Registra una vaca nueva en la granja (HU-01).</summary>
         /// <param name="raza">Raza de la vaca. Es obligatoria.</param>

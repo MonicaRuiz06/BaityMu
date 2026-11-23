@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using BaityMu.Domain.Enums;
 using BaityMu.Services.Dtos;
 using BaityMu.Services.Interfaces;
+using BaityMu.Services.Modelos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BaityMu.Web.Controllers
@@ -44,8 +46,10 @@ namespace BaityMu.Web.Controllers
         {
             var lote = await _produccionService.TransformarAsync(request, ct);
 
-            // 201 sin encabezado Location: la consulta del inventario llega con la HU-10.
-            return StatusCode(StatusCodes.Status201Created, _mapper.Map<LoteResponse>(lote));
+            // Un lote recién creado siempre está Disponible: tiene todo su producto y vence
+            // en el futuro. Location apunta a GET /api/inventario/lotes/{id} (HU-10).
+            var respuesta = _mapper.Map<LoteResponse>(new LoteConEstado(lote, EstadoLote.Disponible));
+            return CreatedAtRoute(InventarioController.RutaLote, new { id = respuesta.Id }, respuesta);
         }
     }
 }

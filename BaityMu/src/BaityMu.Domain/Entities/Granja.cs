@@ -61,6 +61,29 @@ namespace BaityMu.Domain.Entities
             return vaca;
         }
 
+        /// <summary>Retira una vaca del hato (HU-04). n disminuye en 1 y su historial se conserva.</summary>
+        /// <param name="vacaId">Id de la vaca.</param>
+        /// <returns>La vaca retirada.</returns>
+        /// <exception cref="RecursoNoEncontradoException">Si la vaca no existe (404).</exception>
+        /// <exception cref="ConflictoException">Si la vaca ya estaba retirada (409).</exception>
+        /// <exception cref="ReglaDeNegocioException">Si es la última vaca activa: la granja
+        /// necesita al menos una para producir (400).</exception>
+        public Vaca RetirarVaca(int vacaId)
+        {
+            var vaca = _vacas.FirstOrDefault(v => v.Id == vacaId)
+                ?? throw new RecursoNoEncontradoException("una vaca", vacaId);
+
+            if (!vaca.Activa)
+                throw new ConflictoException($"La vaca {vaca.Nombre} ya estaba retirada.");
+
+            if (NumeroVacas == 1)
+                throw new ReglaDeNegocioException(
+                    $"No se puede retirar a {vaca.Nombre}: es la última vaca activa y la granja necesita al menos una.");
+
+            vaca.Retirar();
+            return vaca;
+        }
+
         /// <summary>
         /// Genera el nombre automático: "BaityCow" para la primera vaca y "BaityCow 2",
         /// "BaityCow 3"... para las siguientes. Si ese nombre ya está ocupado, prueba el

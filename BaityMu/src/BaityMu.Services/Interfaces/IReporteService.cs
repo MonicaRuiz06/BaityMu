@@ -49,5 +49,17 @@ namespace BaityMu.Services.Interfaces
         /// <param name="ct">Permite cancelar la operación.</param>
         /// <returns>Un renglón por producto configurado, aunque todo esté en 0.</returns>
         Task<IReadOnlyList<ProductoTotalItem>> ProductoTotalAsync(DateOnly? fecha = null, CancellationToken ct = default);
+
+        /// <summary>Lotes con producto dañado por vencimiento y el total dañado por producto (HU-19).</summary>
+        /// <param name="desde">Fecha de vencimiento mínima, o null para no limitar.</param>
+        /// <param name="hasta">Fecha de vencimiento máxima, o null para no limitar.</param>
+        /// <param name="tipoProducto">Solo un producto, o null para todos.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">desde es posterior a hasta (400).</exception>
+        Task<ReporteProductoDanadoResponse> ProductoDanadoAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            TipoProducto? tipoProducto,
+            CancellationToken ct = default);
     }
 }

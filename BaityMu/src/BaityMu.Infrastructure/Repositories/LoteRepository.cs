@@ -86,5 +86,35 @@ namespace BaityMu.Infrastructure.Repositories
                 .ThenBy(l => l.Id)
                 .ToListAsync(ct);
         }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// A diferencia de ListarAsync, aquí el rango se aplica a la fecha de VENCIMIENTO:
+        /// el gerente pregunta "¿qué se perdió en estas fechas?". El filtro CantidadDanada > 0
+        /// se hace en SQL, así no se traen los lotes sanos.
+        /// </remarks>
+        public async Task<IReadOnlyList<LoteProducto>> ListarDanadosAsync(
+            TipoProducto? tipoProducto,
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default)
+        {
+            IQueryable<LoteProducto> consulta = Db.LotesProducto
+                .AsNoTracking()
+                .Where(l => l.CantidadDanada > 0);
+
+            if (tipoProducto is not null)
+                consulta = consulta.Where(l => l.TipoProducto == tipoProducto);
+            if (desde is not null)
+                consulta = consulta.Where(l => l.FechaVencimiento >= desde);
+            if (hasta is not null)
+                consulta = consulta.Where(l => l.FechaVencimiento <= hasta);
+
+            return await consulta
+                .OrderBy(l => l.FechaVencimiento)
+                .ThenBy(l => l.TipoProducto)
+                .ThenBy(l => l.Id)
+                .ToListAsync(ct);
+        }
     }
 }

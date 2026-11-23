@@ -428,6 +428,49 @@ namespace BaityMu.Tests
             Assert.That((dia17.Disponible, dia17.VencidoSinProcesar), Is.EqualTo((0m, 30m)));
         }
 
+        // ------------------------------------------------------------ HU-19 Reporte de producto dañado
+
+        [Test]
+        public async Task ReporteProductoDanado_DespuesDeProcesarElDia17_ApareceY1Con30L()
+        {
+            await HastaElDia3Async();
+            _reloj.AvanzarDias(14);   // día 17
+
+            // Antes de procesar, Y1 está vencido pero todavía no es "dañado".
+            Assert.That((await _reportes.ProductoDanadoAsync(null, null, null)).Lotes, Is.Empty);
+
+            await _inventario.ProcesarVencimientosAsync(null);
+            NuevaPeticion();
+
+            var reporte = await _reportes.ProductoDanadoAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 31), null);
+
+            var y1 = reporte.Lotes.Single();
+            Assert.That((y1.TipoProducto, y1.FechaProduccion, y1.FechaVencimiento, y1.CantidadDañada, y1.Unidad),
+                Is.EqualTo((TipoProducto.Yogurt, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 16), 30m, "L")));
+            Assert.That(reporte.TotalesPorProducto.Select(t => (t.TipoProducto, t.Cantidad)),
+                Is.EqualTo(new[] { (TipoProducto.Yogurt, 30m) }));
+        }
+
+        [Test]
+        public async Task ReporteProductoDanado_FiltraPorFechaDeVencimientoYProducto()
+        {
+            await HastaElDia3Async();
+            _reloj.AvanzarDias(14);
+            await _inventario.ProcesarVencimientosAsync(null);
+            NuevaPeticion();
+
+            // Y1 venció el 16: no entra si el rango termina el 15, ni si se pide solo queso.
+            Assert.That((await _reportes.ProductoDanadoAsync(null, new DateOnly(2026, 12, 15), null)).Lotes, Is.Empty);
+            Assert.That((await _reportes.ProductoDanadoAsync(null, null, TipoProducto.Queso)).Lotes, Is.Empty);
+        }
+
+        [Test]
+        public void ReporteProductoDanado_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _reportes.ProductoDanadoAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
+        }
+
         [Test]
         public async Task ReporteProductoTotal_SinLotes_MuestraLosProductosEnCero()
         {

@@ -122,6 +122,14 @@ public sealed class BaityMuApi(HttpClient http)
     public Task<List<ProductoTotal>> ReporteProductoTotalAsync(DateOnly fecha) =>
         GetAsync<List<ProductoTotal>>($"api/reportes/producto-total?fecha={F(fecha)}");
 
+    public Task<ReporteProductoDanado> ReporteProductoDanadoAsync(DateOnly desde, DateOnly hasta, TipoProducto? tipo = null)
+    {
+        var url = $"api/reportes/producto-danado?desde={F(desde)}&hasta={F(hasta)}";
+        if (tipo is not null)
+            url += $"&tipo={tipo}";
+        return GetAsync<ReporteProductoDanado>(url);
+    }
+
     // ------------------------------------------------------------------ Plomería
 
     private async Task<T> GetAsync<T>(string url)

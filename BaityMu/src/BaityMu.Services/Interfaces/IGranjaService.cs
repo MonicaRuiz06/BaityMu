@@ -13,6 +13,12 @@ namespace BaityMu.Services.Interfaces
     /// </remarks>
     public interface IGranjaService
     {
+        /// <summary>Consulta la configuración de la granja: n, l, n × l y los productos (HU-05).</summary>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>La granja con sus vacas y productos.</returns>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
+        Task<Granja> ObtenerAsync(CancellationToken ct = default);
+
         /// <summary>Registra una vaca nueva en la granja (HU-01).</summary>
         /// <param name="request">Raza, nombre opcional y fecha de ingreso opcional.</param>
         /// <param name="ct">Permite cancelar la operación.</param>

@@ -29,6 +29,11 @@ namespace BaityMu.Web.Mapping
         /// </summary>
         public BaityMuProfile()
         {
+            // HU-05: la configuración de la granja. NumeroVacas y ProduccionDiariaEsperada
+            // se copian de las propiedades calculadas de Granja porque se llaman igual.
+            CreateMap<Granja, GranjaResponse>();
+            CreateMap<ParametroProducto, ParametroProductoResponse>();
+
             // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
             // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:
             // queda en 0 hasta que la HU-07 registre la producción.

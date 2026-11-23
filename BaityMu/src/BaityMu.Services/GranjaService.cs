@@ -38,6 +38,9 @@ namespace BaityMu.Services
         }
 
         /// <inheritdoc />
+        public Task<Granja> ObtenerAsync(CancellationToken ct = default) => ObtenerGranjaAsync(ct);
+
+        /// <inheritdoc />
         public async Task<Vaca> AgregarVacaAsync(CrearVacaRequest request, CancellationToken ct = default)
         {
             var granja = await ObtenerGranjaAsync(ct);
@@ -87,7 +90,7 @@ namespace BaityMu.Services
 
         /// <summary>Trae la granja con sus vacas, o lanza 404 si no se ha sembrado.</summary>
         private async Task<Granja> ObtenerGranjaAsync(CancellationToken ct) =>
-            await _granjas.ObtenerConVacasAsync(ct)
+            await _granjas.ObtenerCompletaAsync(ct)
                 ?? throw new RecursoNoEncontradoException(
                     "La granja no está configurada. Revisa la sección GranjaInicial de appsettings.json.");
     }

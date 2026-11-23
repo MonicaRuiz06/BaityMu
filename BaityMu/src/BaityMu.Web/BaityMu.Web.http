@@ -60,4 +60,12 @@ Content-Type: application/json
   "nombre": "BaityCow"
 }
 
+### HU-02 Listar las vacas activas con sus litros → 200
+GET {{BaityMu.Web_HostAddress}}/api/vacas
+Accept: application/json
+
+### HU-02 Listar incluyendo las retiradas → 200
+GET {{BaityMu.Web_HostAddress}}/api/vacas?incluirRetiradas=true
+Accept: application/json
+
 ###

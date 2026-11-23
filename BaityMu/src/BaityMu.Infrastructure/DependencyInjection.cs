@@ -40,7 +40,7 @@ namespace BaityMu.Infrastructure
         ///   guarda estado.
         ///
         /// Los repositorios de cada entidad se registran aquí con cada historia de usuario
-        /// (HU-01: GranjaRepository).
+        /// (HU-01: GranjaRepository; HU-02: ProduccionRepository).
         /// </remarks>
         public static IServiceCollection AddRepositories(
             this IServiceCollection services,
@@ -54,6 +54,7 @@ namespace BaityMu.Infrastructure
 
             // Repositorios (Scoped: comparten el DbContext de la petición)
             services.AddScoped<IGranjaRepository, GranjaRepository>();
+            services.AddScoped<IProduccionRepository, ProduccionRepository>();
 
             return services;
         }

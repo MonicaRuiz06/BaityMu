@@ -27,6 +27,9 @@ namespace BaityMu.Infrastructure.Data
         /// <summary>Tabla Vacas: el hato. Las vacas se desactivan, nunca se borran (RNF-11).</summary>
         public DbSet<Vaca> Vacas => Set<Vaca>();
 
+        /// <summary>Tabla ProduccionesLeche: los litros que dio cada vaca cada día.</summary>
+        public DbSet<ProduccionLeche> ProduccionesLeche => Set<ProduccionLeche>();
+
         /// <summary>
         /// Crea el contexto con las opciones que recibe desde afuera.
         /// </summary>

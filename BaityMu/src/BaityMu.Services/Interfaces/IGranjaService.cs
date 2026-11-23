@@ -1,5 +1,6 @@
-using BaityMu.Domain.Entities;
+﻿using BaityMu.Domain.Entities;
 using BaityMu.Services.Dtos;
+using BaityMu.Services.Modelos;
 
 namespace BaityMu.Services.Interfaces
 {
@@ -20,5 +21,13 @@ namespace BaityMu.Services.Interfaces
         /// <exception cref="BaityMu.Domain.Exceptions.ConflictoException">Nombre repetido (409).</exception>
         /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
         Task<Vaca> AgregarVacaAsync(CrearVacaRequest request, CancellationToken ct = default);
+
+        /// <summary>Lista las vacas de la granja con los litros que ha dado cada una (HU-02).</summary>
+        /// <param name="incluirRetiradas">false (por defecto): solo las vacas activas.
+        /// true: también las retiradas, que salen con Activa = false.</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>Las vacas ordenadas por Id. Lista vacía si no hay vacas.</returns>
+        /// <exception cref="BaityMu.Domain.Exceptions.RecursoNoEncontradoException">La granja no existe (404).</exception>
+        Task<IReadOnlyList<VacaConLitros>> ListarVacasAsync(bool incluirRetiradas, CancellationToken ct = default);
     }
 }

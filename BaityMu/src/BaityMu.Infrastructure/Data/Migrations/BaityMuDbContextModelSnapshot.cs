@@ -47,6 +47,37 @@ namespace BaityMu.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BaityMu.Domain.Entities.ProduccionLeche", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Fecha")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Litros")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("VacaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.HasIndex("VacaId", "Fecha")
+                        .IsUnique();
+
+                    b.ToTable("ProduccionesLeche", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ProduccionesLeche_Litros", "[Litros] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("BaityMu.Domain.Entities.Vaca", b =>
                 {
                     b.Property<int>("Id")
@@ -82,6 +113,15 @@ namespace BaityMu.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Vacas", (string)null);
+                });
+
+            modelBuilder.Entity("BaityMu.Domain.Entities.ProduccionLeche", b =>
+                {
+                    b.HasOne("BaityMu.Domain.Entities.Vaca", null)
+                        .WithMany()
+                        .HasForeignKey("VacaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BaityMu.Domain.Entities.Vaca", b =>

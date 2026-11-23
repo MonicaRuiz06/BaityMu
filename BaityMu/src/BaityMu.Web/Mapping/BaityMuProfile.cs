@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BaityMu.Domain.Entities;
 using BaityMu.Services.Dtos;
+using BaityMu.Services.Modelos;
 
 namespace BaityMu.Web.Mapping
 {
@@ -33,6 +34,12 @@ namespace BaityMu.Web.Mapping
             // queda en 0 hasta que la HU-07 registre la producción.
             CreateMap<Vaca, VacaResponse>()
                 .ForMember(d => d.LitrosProducidos, o => o.Ignore());
+
+            // HU-02: el listado trae la vaca y sus litros. IncludeMembers toma Id, Nombre,
+            // Raza... de la vaca (con el mapeo de arriba), y LitrosProducidos se copia
+            // solo porque se llama igual en los dos lados.
+            CreateMap<VacaConLitros, VacaResponse>()
+                .IncludeMembers(x => x.Vaca);
         }
     }
 }

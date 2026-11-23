@@ -325,6 +325,16 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/ventas?desde=2026-12-01&hasta=2026-12-31&tipo=Queso
 Accept: application/json
 
+### HU-21 Producto total en CSV → 200, descarga reporte-producto-total.csv
+GET {{BaityMu.Web_HostAddress}}/api/reportes/producto-total?fecha=2026-12-17&formato=csv
+
+### HU-21 Ventas de diciembre en CSV → 200, descarga reporte-ventas.csv
+GET {{BaityMu.Web_HostAddress}}/api/reportes/ventas?desde=2026-12-01&hasta=2026-12-31&formato=csv
+
+### HU-21 Formato no válido → 400
+GET {{BaityMu.Web_HostAddress}}/api/reportes/vacas?formato=pdf
+Accept: application/json
+
 ### HU-12 Lotes que vencen en los próximos 3 días, consultando el 14 dic → 200 (escenario: Y1 con 30 L, vence el 16)
 GET {{BaityMu.Web_HostAddress}}/api/inventario/proximos-a-vencer?dias=3&fecha=2026-12-14
 Accept: application/json

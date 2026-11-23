@@ -5,6 +5,7 @@ using BaityMu.Infrastructure.Data;
 using BaityMu.Infrastructure.Repositories;
 using BaityMu.Services;
 using BaityMu.Services.Dtos;
+using BaityMu.Services.Exportacion;
 using BaityMu.Tests.Fakes;
 using BaityMu.Tests.Infraestructura;
 using Microsoft.EntityFrameworkCore;
@@ -259,6 +260,26 @@ namespace BaityMu.Tests
         {
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _ventas.ListarAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
+        }
+
+        // ------------------------------------------------------------ HU-21 Exportar a CSV
+
+        [Test]
+        public async Task Csv_ReporteProductoTotal_TieneElEncabezadoYLas2FilasDelEscenario()
+        {
+            await HastaElDia3Async();
+            _reloj.AvanzarDias(14);   // día 17
+            await _inventario.ProcesarVencimientosAsync(null);
+            NuevaPeticion();
+
+            var csv = CsvExporter.Exportar(await _reportes.ProductoTotalAsync());
+
+            Assert.That(csv.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new[]
+            {
+                "TipoProducto;Unidad;Producido;Vendido;Disponible;VencidoSinProcesar;Dañado",
+                "Queso;kg;25;12;13;0;0",
+                "Yogurt;L;50;20;0;0;30",
+            }));
         }
 
         // ------------------------------------------------------------ HU-12 Lotes próximos a vencer

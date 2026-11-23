@@ -1,5 +1,7 @@
 ﻿using BaityMu.Domain.Enums;
+using BaityMu.Domain.Exceptions;
 using BaityMu.Services.Dtos;
+using BaityMu.Services.Exportacion;
 using BaityMu.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +13,10 @@ namespace BaityMu.Web.Controllers
     /// hay datos responden 200 con listas vacías y totales en 0.
     ///
     /// No usa AutoMapper: ReporteService ya devuelve los DTOs armados.
+    ///
+    /// Todos aceptan <c>?formato=csv</c> (HU-21): en vez de JSON devuelven un archivo .csv
+    /// con la lista principal del reporte (las ventas, los días, los lotes o las vacas),
+    /// listo para abrir en Excel. Cualquier otro formato responde 400.
     /// </remarks>
     [ApiController]
     [Route("api/reportes")]
@@ -34,6 +40,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
         /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
         /// <param name="tipo">Solo "Queso" o solo "Yogurt". Opcional.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
         /// <response code="200">El reporte (con listas vacías si no hubo ventas).</response>
         /// <response code="400">'desde' es posterior a 'hasta', o un filtro no es válido.</response>
@@ -44,8 +51,13 @@ namespace BaityMu.Web.Controllers
             [FromQuery] DateOnly? desde,
             [FromQuery] DateOnly? hasta,
             [FromQuery] TipoProducto? tipo,
-            CancellationToken ct) =>
-            Ok(await _reportes.VentasAsync(desde, hasta, tipo, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.VentasAsync(desde, hasta, tipo, ct);
+            return Responder(reporte, reporte.Ventas, "reporte-ventas", formato);
+        }
 
         /// <summary>Leche producida, transformada y no aprovechada de cada día (HU-16).</summary>
         /// <remarks>
@@ -55,6 +67,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
         /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <response code="200">El reporte (con la lista vacía si no hubo producción).</response>
         /// <response code="400">'desde' es posterior a 'hasta'.</response>
         [HttpGet("leche-diaria")]
@@ -63,8 +76,13 @@ namespace BaityMu.Web.Controllers
         public async Task<ActionResult<ReporteLecheDiariaResponse>> LecheDiaria(
             [FromQuery] DateOnly? desde,
             [FromQuery] DateOnly? hasta,
-            CancellationToken ct) =>
-            Ok(await _reportes.LecheDiariaAsync(desde, hasta, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.LecheDiariaAsync(desde, hasta, ct);
+            return Responder(reporte, reporte.Dias, "reporte-leche-diaria", formato);
+        }
 
         /// <summary>Queso y yogurt elaborados cada día, con su unidad y los litros usados (HU-17).</summary>
         /// <remarks>
@@ -74,6 +92,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
         /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <response code="200">El reporte (con listas vacías si no se elaboró nada).</response>
         /// <response code="400">'desde' es posterior a 'hasta'.</response>
         [HttpGet("producto-diario")]
@@ -82,8 +101,13 @@ namespace BaityMu.Web.Controllers
         public async Task<ActionResult<ReporteProductoDiarioResponse>> ProductoDiario(
             [FromQuery] DateOnly? desde,
             [FromQuery] DateOnly? hasta,
-            CancellationToken ct) =>
-            Ok(await _reportes.ProductoDiarioAsync(desde, hasta, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.ProductoDiarioAsync(desde, hasta, ct);
+            return Responder(reporte, reporte.Dias, "reporte-producto-diario", formato);
+        }
 
         /// <summary>Balance de cada producto: producido, vendido, disponible y dañado (HU-18).</summary>
         /// <remarks>
@@ -99,13 +123,21 @@ namespace BaityMu.Web.Controllers
         /// </remarks>
         /// <param name="fecha">Fecha de consulta (yyyy-MM-dd). Opcional: si no llega, se usa la de hoy.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <response code="200">Un renglón por producto.</response>
+        /// <response code="400">El formato no es válido.</response>
         [HttpGet("producto-total")]
         [ProducesResponseType<IReadOnlyList<ProductoTotalItem>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
         public async Task<ActionResult<IReadOnlyList<ProductoTotalItem>>> ProductoTotal(
             [FromQuery] DateOnly? fecha,
-            CancellationToken ct) =>
-            Ok(await _reportes.ProductoTotalAsync(fecha, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.ProductoTotalAsync(fecha, ct);
+            return Responder(reporte, reporte, "reporte-producto-total", formato);
+        }
 
         /// <summary>Producto que se perdió por vencimiento, lote por lote (HU-19).</summary>
         /// <remarks>
@@ -117,6 +149,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="hasta">Fecha de vencimiento máxima (yyyy-MM-dd). Opcional.</param>
         /// <param name="tipo">Solo "Queso" o solo "Yogurt". Opcional.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <response code="200">El reporte (con listas vacías si no hubo daño).</response>
         /// <response code="400">'desde' es posterior a 'hasta', o un filtro no es válido.</response>
         [HttpGet("producto-danado")]
@@ -126,8 +159,13 @@ namespace BaityMu.Web.Controllers
             [FromQuery] DateOnly? desde,
             [FromQuery] DateOnly? hasta,
             [FromQuery] TipoProducto? tipo,
-            CancellationToken ct) =>
-            Ok(await _reportes.ProductoDanadoAsync(desde, hasta, tipo, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.ProductoDanadoAsync(desde, hasta, tipo, ct);
+            return Responder(reporte, reporte.Lotes, "reporte-producto-danado", formato);
+        }
 
         /// <summary>Producción de cada vaca: promedio, la mejor, la peor y las que están por debajo (HU-20).</summary>
         /// <remarks>
@@ -141,6 +179,7 @@ namespace BaityMu.Web.Controllers
         /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
         /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
         /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <param name="formato">"csv" para descargar un archivo .csv (HU-21). Opcional: por defecto, JSON.</param>
         /// <response code="200">El reporte (sin vacas evaluadas si no hubo producción).</response>
         /// <response code="400">'desde' es posterior a 'hasta'.</response>
         [HttpGet("vacas")]
@@ -149,7 +188,50 @@ namespace BaityMu.Web.Controllers
         public async Task<ActionResult<ReporteVacasResponse>> Vacas(
             [FromQuery] DateOnly? desde,
             [FromQuery] DateOnly? hasta,
-            CancellationToken ct) =>
-            Ok(await _reportes.VacasAsync(desde, hasta, ct));
+            [FromQuery] string? formato,
+            CancellationToken ct)
+        {
+            ValidarFormato(formato);
+            var reporte = await _reportes.VacasAsync(desde, hasta, ct);
+            return Responder(reporte, reporte.Vacas, "reporte-vacas", formato);
+        }
+
+        // ------------------------------------------------------------------ HU-21 Formato CSV
+
+        /// <summary>true si se pidió el reporte en CSV.</summary>
+        private static bool EsCsv(string? formato) =>
+            string.Equals(formato, "csv", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Solo se aceptan "json" (o nada) y "csv".</summary>
+        /// <remarks>Se valida antes de consultar, para no hacer el trabajo si la petición es inválida.</remarks>
+        /// <exception cref="ReglaDeNegocioException">Otro formato (400).</exception>
+        private static void ValidarFormato(string? formato)
+        {
+            if (formato is not null && !EsCsv(formato)
+                && !string.Equals(formato, "json", StringComparison.OrdinalIgnoreCase))
+                throw new ReglaDeNegocioException($"El formato '{formato}' no es válido. Usa 'json' o 'csv'.");
+        }
+
+        /// <summary>
+        /// Devuelve el reporte como JSON o, si se pidió CSV, su lista principal como archivo.
+        /// </summary>
+        /// <typeparam name="TReporte">Tipo del reporte completo (lo que va en JSON).</typeparam>
+        /// <typeparam name="TFila">Tipo de cada fila del CSV.</typeparam>
+        /// <param name="reporte">El reporte que armó ReporteService.</param>
+        /// <param name="filas">La lista del reporte que se exporta en el CSV.</param>
+        /// <param name="nombre">Nombre del archivo, sin extensión.</param>
+        /// <param name="formato">El formato pedido.</param>
+        /// <remarks>
+        /// File(...) arma la respuesta con el encabezado Content-Disposition: attachment, así
+        /// el navegador lo descarga como "reporte-ventas.csv" en vez de mostrarlo.
+        /// </remarks>
+        private ActionResult<TReporte> Responder<TReporte, TFila>(
+            TReporte reporte,
+            IEnumerable<TFila> filas,
+            string nombre,
+            string? formato) =>
+            EsCsv(formato)
+                ? File(CsvExporter.ExportarBytes(filas), CsvExporter.TipoContenido, $"{nombre}.csv")
+                : Ok(reporte);
     }
 }

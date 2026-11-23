@@ -14,6 +14,15 @@
 </div>
 
 <section class="panel">
+    @if (_vista == Vista.Balance)
+    {
+        <p class="atenuada" style="margin:0">
+            El balance cuenta todo desde el inicio. Lo <strong>disponible</strong> se calcula al
+            @Formato.Fecha(Estado.Dia) (el día de trabajo): un lote vencido ese día ya no cuenta.
+        </p>
+    }
+    else
+    {
     <div class="campos-fila">
         <label class="campo">
             <span>Desde</span>
@@ -35,6 +44,7 @@
             </div>
         }
     </div>
+    }
 </section>
 
 <section class="seccion">
@@ -43,7 +53,7 @@
             <button type="button" class="@(_vista == Vista.Ventas ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Ventas)">🛒 Ventas</button>
             <button type="button" class="@(_vista == Vista.Leche ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Leche)">🥛 Leche por día</button>
             <button type="button" class="@(_vista == Vista.Producto ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Producto)">🧀 Producto por día</button>
-            <button type="button" disabled title="Llega con la HU-18">⚖️ Balance</button>
+            <button type="button" class="@(_vista == Vista.Balance ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Balance)">⚖️ Balance</button>
             <button type="button" disabled title="Llega con la HU-19">🗑️ Dañado</button>
             <button type="button" disabled title="Llega con la HU-20">🐄 Vacas</button>
         </div>
@@ -204,11 +214,78 @@
             </div>
         }
     }
+    else if (_vista == Vista.Balance && _balance is not null)
+    {
+        <div class="grilla grilla-2">
+            @foreach (var b in _balance)
+            {
+                <section class="panel">
+                    <div class="barra-herramientas" style="margin-bottom:8px">
+                        <h3>@(b.TipoProducto == TipoProducto.Queso ? "🧀" : "🥣") @b.TipoProducto</h3>
+                        <span class="atenuada">Producido: <strong>@Formato.Cantidad(b.Producido) @b.Unidad</strong></span>
+                    </div>
+                    <div class="leche-barra" style="height:18px" role="img"
+                         aria-label="@($"Vendido {Formato.Cantidad(b.Vendido)}, disponible {Formato.Cantidad(b.Disponible)}, dañado {Formato.Cantidad(b.Dañado)} {b.Unidad}")">
+                        <span style="width:@Porcentaje(b.Vendido, b.Producido);background:var(--paja)"></span>
+                        <span style="width:@Porcentaje(b.Disponible, b.Producido);background:var(--potrero)"></span>
+                        <span style="width:@Porcentaje(b.VencidoSinProcesar, b.Producido);background:var(--paja-oscura)"></span>
+                        <span style="width:@Porcentaje(b.Dañado, b.Producido);background:var(--arcilla)"></span>
+                    </div>
+                    <div class="leche-leyenda">
+                        <span><i style="background:var(--paja)"></i>Vendido: <strong>@Formato.Cantidad(b.Vendido) @b.Unidad</strong></span>
+                        <span><i style="background:var(--potrero)"></i>Disponible: <strong>@Formato.Cantidad(b.Disponible) @b.Unidad</strong></span>
+                        @if (b.VencidoSinProcesar > 0)
+                        {
+                            <span><i style="background:var(--paja-oscura)"></i>Vencido sin procesar: <strong>@Formato.Cantidad(b.VencidoSinProcesar) @b.Unidad</strong></span>
+                        }
+                        <span><i style="background:var(--arcilla)"></i>Dañado: <strong>@Formato.Cantidad(b.Dañado) @b.Unidad</strong></span>
+                    </div>
+                </section>
+            }
+        </div>
+
+        <div class="tabla-envoltura" style="margin-top:16px">
+            <table>
+                <thead>
+                    <tr><th>Producto</th><th class="num">Producido</th><th class="num">Vendido</th><th class="num">Disponible</th>
+                        @if (HayVencidoSinProcesar)
+                        {
+                            <th class="num">Vencido sin procesar</th>
+                        }
+                        <th class="num">Dañado</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in _balance)
+                    {
+                        <tr>
+                            <td><span class="insignia insignia-@b.TipoProducto.ToString().ToLowerInvariant()">@b.TipoProducto</span> (@b.Unidad)</td>
+                            <td class="num">@Formato.Cantidad(b.Producido)</td>
+                            <td class="num">@Formato.Cantidad(b.Vendido)</td>
+                            <td class="num">@Formato.Cantidad(b.Disponible)</td>
+                            @if (HayVencidoSinProcesar)
+                            {
+                                <td class="num">@Formato.Cantidad(b.VencidoSinProcesar)</td>
+                            }
+                            <td class="num" style="@(b.Dañado > 0 ? "color:var(--arcilla);font-weight:600" : "")">@Formato.Cantidad(b.Dañado)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (HayVencidoSinProcesar)
+        {
+            <div class="panel panel-nota" style="margin-top:16px">
+                ⚠ Hay producto vencido que todavía no se ha marcado como dañado.
+                <a href="inventario">Procésalo en Inventario</a> para que pase a la columna Dañado.
+            </div>
+        }
+    }
 </section>
 
 @code {
     /// <summary>Los reportes que ya existen en la API. Cada HU agrega el suyo.</summary>
-    private enum Vista { Ventas, Leche, Producto }
+    private enum Vista { Ventas, Leche, Producto, Balance }
 
     private Vista _vista = Vista.Ventas;
     private DateOnly _desde;
@@ -217,6 +294,9 @@
     private ReporteVentas? _ventas;
     private ReporteLecheDiaria? _leche;
     private ReporteProductoDiario? _producto;
+    private List<ProductoTotal>? _balance;
+
+    private bool HayVencidoSinProcesar => _balance?.Any(b => b.VencidoSinProcesar > 0) == true;
     private ApiException? _error;
     private bool _cargando;
 
@@ -283,6 +363,9 @@
                     break;
                 case Vista.Producto:
                     _producto = await Api.ReporteProductoDiarioAsync(_desde, _hasta);
+                    break;
+                case Vista.Balance:
+                    _balance = await Api.ReporteProductoTotalAsync(Estado.Dia);
                     break;
             }
         }

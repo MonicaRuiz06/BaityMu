@@ -261,6 +261,53 @@ namespace BaityMu.Tests
                 _ventas.ListarAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
         }
 
+        // ------------------------------------------------------------ HU-12 Lotes próximos a vencer
+
+        [Test]
+        public async Task ProximosAVencer_ConPlazoDe3Dias_TraeElQueVenceEn2DiasYNoElVencido()
+        {
+            // Después del día 3: Q1 agotado (vence 31 dic), Y1 con 30 L (vence 16 dic), Q2 con 13 kg (vence 1 ene).
+            var (_, ventaYogurt) = await HastaElDia3Async();
+            var y1 = ventaYogurt.Detalles.Single().LoteId;
+
+            // 14 dic: Y1 vence en 2 días → aparece; Q2 vence en 18 días → no.
+            var dia14 = await _inventario.ListarProximosAVencerAsync(3, new DateOnly(2026, 12, 14));
+            Assert.That(dia14.Select(l => l.Lote.Id), Is.EqualTo(new[] { y1 }));
+
+            // 17 dic: Y1 ya venció → no aparece.
+            var dia17 = await _inventario.ListarProximosAVencerAsync(3, new DateOnly(2026, 12, 17));
+            Assert.That(dia17, Is.Empty);
+        }
+
+        [Test]
+        public async Task ProximosAVencer_UnLoteAgotado_NoAparece()
+        {
+            await HastaElDia3Async();
+
+            // 29 dic con 3 días: Q1 (vence el 31) está agotado; solo sale Q2 (vence el 1 de enero).
+            var lotes = await _inventario.ListarProximosAVencerAsync(3, new DateOnly(2026, 12, 29));
+
+            Assert.That(lotes.Select(l => (l.Lote.TipoProducto, l.Lote.FechaVencimiento)),
+                Is.EqualTo(new[] { (TipoProducto.Queso, new DateOnly(2027, 1, 1)) }));
+        }
+
+        [Test]
+        public async Task ProximosAVencer_SinDias_UsaPorDefecto3()
+        {
+            await HastaElDia3Async();
+
+            // 13 dic + 3 = 16 dic: entra Y1 justo en el límite.
+            Assert.That(await _inventario.ListarProximosAVencerAsync(null, new DateOnly(2026, 12, 13)), Has.Count.EqualTo(1));
+            // 12 dic + 3 = 15 dic: Y1 (vence el 16) queda por fuera.
+            Assert.That(await _inventario.ListarProximosAVencerAsync(null, new DateOnly(2026, 12, 12)), Is.Empty);
+        }
+
+        [Test]
+        public void ProximosAVencer_DiasNegativos_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() => _inventario.ListarProximosAVencerAsync(-1, null));
+        }
+
         // ------------------------------------------------------------ HU-15 Reporte de ventas
 
         [Test]

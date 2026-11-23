@@ -27,6 +27,16 @@ namespace BaityMu.Services.Interfaces
         Task<LoteConEstado> ObtenerLoteAsync(int id, DateOnly? fecha, CancellationToken ct = default);
 
         /// <summary>
+        /// Lotes con existencias que vencen dentro de los próximos <paramref name="dias"/> días (HU-12).
+        /// </summary>
+        /// <param name="dias">Plazo en días, contado desde la fecha. Por defecto 3. No puede ser negativo.</param>
+        /// <param name="fecha">Fecha de consulta, o null para usar la de hoy (RN-10).</param>
+        /// <param name="ct">Permite cancelar la operación.</param>
+        /// <returns>Los lotes ordenados del que vence primero al que vence después.</returns>
+        /// <exception cref="BaityMu.Domain.Exceptions.ReglaDeNegocioException">dias es negativo (400).</exception>
+        Task<IReadOnlyList<LoteConEstado>> ListarProximosAVencerAsync(int? dias, DateOnly? fecha, CancellationToken ct = default);
+
+        /// <summary>
         /// Resumen por producto: cantidad vendible, vencida sin procesar y dañada (HU-10).
         /// Siempre trae queso y yogurt, aunque alguno no tenga lotes.
         /// </summary>

@@ -1,4 +1,4 @@
-using BaityMu.Domain.Enums;
+﻿using BaityMu.Domain.Enums;
 using BaityMu.Services.Dtos;
 using BaityMu.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -46,5 +46,24 @@ namespace BaityMu.Web.Controllers
             [FromQuery] TipoProducto? tipo,
             CancellationToken ct) =>
             Ok(await _reportes.VentasAsync(desde, hasta, tipo, ct));
+
+        /// <summary>Leche producida, transformada y no aprovechada de cada día (HU-16).</summary>
+        /// <remarks>
+        /// Solo aparecen los días con producción. Escenario: el día 1 y el día 2 muestran
+        /// **150 L** producidos, 150 L transformados y 0 L no aprovechados.
+        /// </remarks>
+        /// <param name="desde">Fecha mínima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="hasta">Fecha máxima (yyyy-MM-dd). Opcional.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">El reporte (con la lista vacía si no hubo producción).</response>
+        /// <response code="400">'desde' es posterior a 'hasta'.</response>
+        [HttpGet("leche-diaria")]
+        [ProducesResponseType<ReporteLecheDiariaResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<ReporteLecheDiariaResponse>> LecheDiaria(
+            [FromQuery] DateOnly? desde,
+            [FromQuery] DateOnly? hasta,
+            CancellationToken ct) =>
+            Ok(await _reportes.LecheDiariaAsync(desde, hasta, ct));
     }
 }

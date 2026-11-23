@@ -37,6 +37,26 @@ namespace BaityMu.Infrastructure.Repositories
                 .ToListAsync(ct);
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Los filtros solo se agregan si llegan (igual que en lotes y ventas): EF arma un solo
+        /// SELECT con los WHERE que hagan falta.
+        /// </remarks>
+        public async Task<IReadOnlyList<ProduccionLeche>> ListarAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct = default)
+        {
+            IQueryable<ProduccionLeche> consulta = Db.ProduccionesLeche.AsNoTracking();
+
+            if (desde is not null)
+                consulta = consulta.Where(p => p.Fecha >= desde);
+            if (hasta is not null)
+                consulta = consulta.Where(p => p.Fecha <= hasta);
+
+            return await consulta
+                .OrderBy(p => p.Fecha)
+                .ThenBy(p => p.VacaId)
+                .ToListAsync(ct);
+        }
+
+        /// <inheritdoc />
         public async Task<IReadOnlySet<int>> VacasConProduccionAsync(DateOnly fecha, CancellationToken ct = default) =>
             (await Db.ProduccionesLeche
                 .Where(p => p.Fecha == fecha)

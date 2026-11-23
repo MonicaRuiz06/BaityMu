@@ -47,7 +47,7 @@ namespace BaityMu.Tests
             _inventario = new InventarioService(lotes, unitOfWork, _reloj);
             var ventas = new VentaRepository(_db);
             _ventas = new VentaService(granjas, lotes, ventas, unitOfWork, _reloj);
-            _reportes = new ReporteService(ventas);
+            _reportes = new ReporteService(ventas, producciones, lotes);
             _granja = new GranjaService(granjas, producciones, unitOfWork, _reloj);
 
             var granja = new Granja("Granja BaityMu", 15m);
@@ -302,6 +302,56 @@ namespace BaityMu.Tests
         {
             Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
                 _reportes.VentasAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1), null));
+        }
+
+        // ------------------------------------------------------------ HU-16 Reporte de leche por día
+
+        [Test]
+        public async Task ReporteLecheDiaria_DelEscenario_150LCadaDiaY0NoAprovechados()
+        {
+            await HastaElDia3Async();
+
+            var reporte = await _reportes.LecheDiariaAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 3));
+
+            // El día 3 no hubo ordeño: no aparece.
+            Assert.That(reporte.Dias.Select(d => (d.Fecha, d.LitrosProducidos, d.LitrosTransformados, d.LitrosNoAprovechados)),
+                Is.EqualTo(new[]
+                {
+                    (new DateOnly(2026, 12, 1), 150m, 150m, 0m),
+                    (new DateOnly(2026, 12, 2), 150m, 150m, 0m),
+                }));
+            Assert.That(reporte.TotalProducido, Is.EqualTo(300m));
+            Assert.That(reporte.TotalNoAprovechado, Is.EqualTo(0m));
+        }
+
+        [Test]
+        public async Task ReporteLecheDiaria_LecheSinTransformar_ApareceComoNoAprovechada()
+        {
+            // Día 1: 150 L y solo 100 L a queso
+            await _produccion.RegistrarAsync(new RegistrarProduccionRequest());
+            NuevaPeticion();
+            await _produccion.TransformarAsync(new() { TipoProducto = TipoProducto.Queso, Litros = 100m });
+            NuevaPeticion();
+
+            var reporte = await _reportes.LecheDiariaAsync(null, null);
+
+            Assert.That(reporte.Dias.Single().LitrosNoAprovechados, Is.EqualTo(50m));
+        }
+
+        [Test]
+        public async Task ReporteLecheDiaria_SinProduccion_DevuelveListaVaciaYTotalesCero()
+        {
+            var reporte = await _reportes.LecheDiariaAsync(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 31));
+
+            Assert.That(reporte.Dias, Is.Empty);
+            Assert.That(reporte.TotalProducido, Is.EqualTo(0m));
+        }
+
+        [Test]
+        public void ReporteLecheDiaria_DesdePosteriorAHasta_LanzaReglaDeNegocio()
+        {
+            Assert.ThrowsAsync<ReglaDeNegocioException>(() =>
+                _reportes.LecheDiariaAsync(new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 1)));
         }
     }
 }

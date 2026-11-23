@@ -218,6 +218,24 @@ public sealed class VentaDelReporte
     public decimal Total { get; set; }
 }
 
+public sealed class ReporteLecheDiaria
+{
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public List<LecheDelDia> Dias { get; set; } = new();
+    public decimal TotalProducido { get; set; }
+    public decimal TotalTransformado { get; set; }
+    public decimal TotalNoAprovechado { get; set; }
+}
+
+public sealed class LecheDelDia
+{
+    public DateOnly Fecha { get; set; }
+    public decimal LitrosProducidos { get; set; }
+    public decimal LitrosTransformados { get; set; }
+    public decimal LitrosNoAprovechados { get; set; }
+}
+
 public sealed class TotalVentasProducto
 {
     public TipoProducto TipoProducto { get; set; }

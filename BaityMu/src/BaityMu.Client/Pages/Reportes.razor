@@ -23,22 +23,25 @@
             <span>Hasta</span>
             <input type="date" @bind="_hasta" @bind:after="CargarAsync" />
         </label>
-        <div class="campo">
-            <span>Producto</span>
-            <div class="pestanas" role="tablist">
-                <button type="button" class="@(_tipo is null ? "activa" : "")" @onclick="() => FiltrarAsync(null)">Todos</button>
-                <button type="button" class="@(_tipo == TipoProducto.Queso ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Queso)">🧀 Queso</button>
-                <button type="button" class="@(_tipo == TipoProducto.Yogurt ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Yogurt)">🥣 Yogurt</button>
+        @if (_vista == Vista.Ventas)
+        {
+            <div class="campo">
+                <span>Producto</span>
+                <div class="pestanas" role="tablist">
+                    <button type="button" class="@(_tipo is null ? "activa" : "")" @onclick="() => FiltrarAsync(null)">Todos</button>
+                    <button type="button" class="@(_tipo == TipoProducto.Queso ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Queso)">🧀 Queso</button>
+                    <button type="button" class="@(_tipo == TipoProducto.Yogurt ? "activa" : "")" @onclick="() => FiltrarAsync(TipoProducto.Yogurt)">🥣 Yogurt</button>
+                </div>
             </div>
-        </div>
+        }
     </div>
 </section>
 
 <section class="seccion">
     <div class="barra-herramientas">
         <div class="pestanas" role="tablist" aria-label="Reporte">
-            <button type="button" class="activa">🛒 Ventas</button>
-            <button type="button" disabled title="Llega con la HU-16">🥛 Leche por día</button>
+            <button type="button" class="@(_vista == Vista.Ventas ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Ventas)">🛒 Ventas</button>
+            <button type="button" class="@(_vista == Vista.Leche ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Leche)">🥛 Leche por día</button>
             <button type="button" disabled title="Llega con la HU-17">🧀 Producto por día</button>
             <button type="button" disabled title="Llega con la HU-18">⚖️ Balance</button>
             <button type="button" disabled title="Llega con la HU-19">🗑️ Dañado</button>
@@ -50,11 +53,11 @@
     {
         <ErrorCarga Error="_error" Reintentar="CargarAsync" />
     }
-    else if (_ventas is null)
+    else if (_cargando)
     {
         <Cargando />
     }
-    else
+    else if (_vista == Vista.Ventas && _ventas is not null)
     {
         <div class="grilla grilla-3">
             <Metrica Etiqueta="Total vendido" Valor="@Formato.Pesos(_ventas.TotalGeneral)"
@@ -70,10 +73,7 @@
 
         @if (_ventas.Ventas.Count == 0)
         {
-            <div class="panel vacio" style="margin-top:16px">
-                <span class="vacio-icono">🧾</span>
-                <p>No hubo ventas entre el @Formato.Fecha(_desde) y el @Formato.Fecha(_hasta).</p>
-            </div>
+            <SinDatos Icono="🧾" Texto="@($"No hubo ventas entre el {Formato.Fecha(_desde)} y el {Formato.Fecha(_hasta)}.")" />
         }
         else
         {
@@ -102,16 +102,74 @@
             </div>
         }
     }
+    else if (_vista == Vista.Leche && _leche is not null)
+    {
+        <div class="grilla grilla-3">
+            <Metrica Etiqueta="Leche producida" Valor="@Formato.Litros(_leche.TotalProducido)"
+                     Nota="@($"{_leche.Dias.Count} días con ordeño")" Destacada="true" />
+            <Metrica Etiqueta="Transformada" Valor="@Formato.Litros(_leche.TotalTransformado)" Nota="En queso y yogurt" />
+            <Metrica Etiqueta="No aprovechada" Valor="@Formato.Litros(_leche.TotalNoAprovechado)" Nota="Leche que no se transformó" />
+        </div>
+
+        @if (_leche.Dias.Count == 0)
+        {
+            <SinDatos Icono="🥛" Texto="@($"No hubo ordeño entre el {Formato.Fecha(_desde)} y el {Formato.Fecha(_hasta)}.")" />
+        }
+        else
+        {
+            <div class="tabla-envoltura" style="margin-top:16px">
+                <table>
+                    <thead>
+                        <tr><th>Día</th><th class="num">Producida</th><th class="num">Transformada</th><th class="num">No aprovechada</th><th>Uso de la leche</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _leche.Dias)
+                        {
+                            <tr>
+                                <td>@Formato.Fecha(d.Fecha)</td>
+                                <td class="num">@Formato.Litros(d.LitrosProducidos)</td>
+                                <td class="num">@Formato.Litros(d.LitrosTransformados)</td>
+                                <td class="num" style="@(d.LitrosNoAprovechados > 0 ? "color:var(--arcilla);font-weight:600" : "")">@Formato.Litros(d.LitrosNoAprovechados)</td>
+                                <td style="min-width:140px">
+                                    <div class="leche-barra" role="img" aria-label="@($"{Porcentaje(d.LitrosTransformados, d.LitrosProducidos)} transformada")">
+                                        <span class="leche-usada" style="width:@Porcentaje(d.LitrosTransformados, d.LitrosProducidos)"></span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total</th>
+                            <th class="num">@Formato.Litros(_leche.TotalProducido)</th>
+                            <th class="num">@Formato.Litros(_leche.TotalTransformado)</th>
+                            <th class="num">@Formato.Litros(_leche.TotalNoAprovechado)</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    }
 </section>
 
 @code {
+    /// <summary>Los reportes que ya existen en la API. Cada HU agrega el suyo.</summary>
+    private enum Vista { Ventas, Leche }
+
+    private Vista _vista = Vista.Ventas;
     private DateOnly _desde;
     private DateOnly _hasta;
     private TipoProducto? _tipo;
     private ReporteVentas? _ventas;
+    private ReporteLecheDiaria? _leche;
     private ApiException? _error;
+    private bool _cargando;
 
     private static string TextoVentas(int n) => n == 1 ? "1 venta" : $"{n} ventas";
+
+    private static string Porcentaje(decimal parte, decimal total) =>
+        total == 0 ? "0%" : (parte / total * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
 
     /// <summary>Con filtro de producto solo se muestra esa tarjeta.</summary>
     private IEnumerable<TipoProducto> Productos =>
@@ -140,23 +198,43 @@
 
     public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
 
+    private async Task CambiarVistaAsync(Vista vista)
+    {
+        _vista = vista;
+        await CargarAsync();
+    }
+
     private async Task FiltrarAsync(TipoProducto? tipo)
     {
         _tipo = tipo;
         await CargarAsync();
     }
 
+    /// <summary>Pide a la API solo el reporte de la pestaña abierta.</summary>
     private async Task CargarAsync()
     {
         _error = null;
+        _cargando = true;
         try
         {
-            _ventas = await Api.ReporteVentasAsync(_desde, _hasta, _tipo);
+            switch (_vista)
+            {
+                case Vista.Ventas:
+                    _ventas = await Api.ReporteVentasAsync(_desde, _hasta, _tipo);
+                    break;
+                case Vista.Leche:
+                    _leche = await Api.ReporteLecheDiariaAsync(_desde, _hasta);
+                    break;
+            }
         }
         catch (ApiException e)
         {
             // Rango al revés: la API responde 400 y se muestra su mensaje.
             _error = e;
+        }
+        finally
+        {
+            _cargando = false;
         }
     }
 }

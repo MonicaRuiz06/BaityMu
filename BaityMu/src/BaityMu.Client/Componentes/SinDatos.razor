@@ -1,0 +1,10 @@
+@* Aviso para cuando un reporte no tiene datos en el período elegido. *@
+<div class="panel vacio" style="margin-top:16px">
+    <span class="vacio-icono">@Icono</span>
+    <p>@Texto</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Icono { get; set; } = "";
+    [Parameter, EditorRequired] public string Texto { get; set; } = "";
+}

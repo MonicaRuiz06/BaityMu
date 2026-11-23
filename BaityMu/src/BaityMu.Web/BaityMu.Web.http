@@ -244,4 +244,24 @@ Content-Type: application/json
   "litros": 0
 }
 
+### HU-10 Inventario completo, visto el día 3 del escenario → 200
+GET {{BaityMu.Web_HostAddress}}/api/inventario?fecha=2026-12-03
+Accept: application/json
+
+### HU-10 Solo yogurt, visto el día 17 → Y1 aparece Vencido
+GET {{BaityMu.Web_HostAddress}}/api/inventario?tipoProducto=Yogurt&fecha=2026-12-17
+Accept: application/json
+
+### HU-10 Un lote por Id → 200
+GET {{BaityMu.Web_HostAddress}}/api/inventario/lotes/1
+Accept: application/json
+
+### HU-10 Lote inexistente → 404
+GET {{BaityMu.Web_HostAddress}}/api/inventario/lotes/999
+Accept: application/json
+
+### HU-10 Resumen por producto, el día 17 → yogurt vencido sin procesar
+GET {{BaityMu.Web_HostAddress}}/api/inventario/resumen?fecha=2026-12-17
+Accept: application/json
+
 ###

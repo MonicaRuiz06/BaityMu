@@ -38,8 +38,13 @@ namespace BaityMu.Web.Mapping
             CreateMap<ProduccionDiaria, ProduccionDiariaResponse>();
             CreateMap<ProduccionDeVaca, ProduccionVacaDiaResponse>();
 
-            // HU-09: los lotes del inventario. Todas las propiedades se llaman igual.
-            CreateMap<LoteProducto, LoteResponse>();
+            // HU-09 y HU-10: los lotes del inventario. El estado no es parte de la entidad
+            // (depende de la fecha), por eso viene en LoteConEstado.
+            CreateMap<LoteProducto, LoteResponse>()
+                .ForMember(d => d.Estado, o => o.Ignore());
+            CreateMap<LoteConEstado, LoteResponse>()
+                .IncludeMembers(x => x.Lote);
+            CreateMap<ResumenInventario, ResumenInventarioResponse>();
 
             // HU-01: las propiedades con el mismo nombre se copian solas (Id, Nombre,
             // Raza, Activa, FechaIngreso). LitrosProducidos no existe en la entidad:

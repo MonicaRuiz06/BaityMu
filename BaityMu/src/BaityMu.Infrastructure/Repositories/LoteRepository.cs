@@ -1,4 +1,5 @@
 ﻿using BaityMu.Domain.Entities;
+using BaityMu.Domain.Enums;
 using BaityMu.Domain.Interfaces;
 using BaityMu.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -24,5 +25,32 @@ namespace BaityMu.Infrastructure.Repositories
             await Db.LotesProducto
                 .Where(l => l.FechaProduccion == fechaProduccion)
                 .SumAsync(l => (decimal?)l.LitrosUsados, ct) ?? 0m;
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Los filtros se van agregando a la consulta solo si vienen: EF arma un único
+        /// SELECT con los WHERE que hagan falta. El orden es el mismo del índice FIFO.
+        /// </remarks>
+        public async Task<IReadOnlyList<LoteProducto>> ListarAsync(
+            TipoProducto? tipoProducto,
+            DateOnly? desde,
+            DateOnly? hasta,
+            CancellationToken ct = default)
+        {
+            IQueryable<LoteProducto> consulta = Db.LotesProducto.AsNoTracking();
+
+            if (tipoProducto is not null)
+                consulta = consulta.Where(l => l.TipoProducto == tipoProducto);
+            if (desde is not null)
+                consulta = consulta.Where(l => l.FechaProduccion >= desde);
+            if (hasta is not null)
+                consulta = consulta.Where(l => l.FechaProduccion <= hasta);
+
+            return await consulta
+                .OrderBy(l => l.TipoProducto)
+                .ThenBy(l => l.FechaProduccion)
+                .ThenBy(l => l.Id)
+                .ToListAsync(ct);
+        }
     }
 }

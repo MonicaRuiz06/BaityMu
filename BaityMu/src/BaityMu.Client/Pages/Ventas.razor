@@ -1,0 +1,179 @@
+@page "/ventas"
+@implements IDisposable
+@inject BaityMuApi Api
+@inject EstadoApp Estado
+
+<PageTitle>Ventas · BaityMu</PageTitle>
+
+<div class="encabezado">
+    <div>
+        <span class="rol">BaityVendedor</span>
+        <h1>Vender el @Formato.Fecha(Estado.Dia)</h1>
+        <p>Se despacha siempre el lote más antiguo que no esté vencido (FIFO). Si no alcanza el producto sin vencer, la venta se rechaza completa.</p>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <ErrorCarga Error="_error" Reintentar="CargarAsync" />
+}
+else if (_granja is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="grilla grilla-lateral">
+        <section class="panel">
+            <h2>Nueva venta</h2>
+            <div class="form">
+                <div class="selector-producto" role="radiogroup" aria-label="Producto">
+                    @foreach (var p in _granja.Productos)
+                    {
+                        var stock = Vendible(p.TipoProducto);
+                        <button type="button" role="radio" aria-checked="@(_datos.TipoProducto == p.TipoProducto)"
+                                class="opcion-producto @(_datos.TipoProducto == p.TipoProducto ? "elegida" : "")"
+                                @onclick="() => _datos.TipoProducto = p.TipoProducto">
+                            <strong>@(p.TipoProducto == TipoProducto.Queso ? "🧀" : "🥣") @p.TipoProducto</strong>
+                            <span>@Formato.Pesos(p.PrecioUnitario) / @p.Unidad · hay @Formato.ConUnidad(stock, p.TipoProducto) para vender</span>
+                        </button>
+                    }
+                </div>
+
+                <label class="campo">
+                    <span>Cantidad (@Formato.Unidad(_datos.TipoProducto))</span>
+                    <div class="acciones" style="flex-wrap:nowrap">
+                        <input type="number" min="0" step="0.5" @bind="_datos.Cantidad" @bind:event="oninput" />
+                        <button type="button" class="boton-mini" @onclick="() => _datos.Cantidad = Vendible(_datos.TipoProducto)">Todo</button>
+                    </div>
+                </label>
+
+                @if (Producto is { } prod && _datos.Cantidad > 0)
+                {
+                    <div class="panel panel-nota">
+                        Total: <strong>@Formato.Pesos(Math.Round(_datos.Cantidad * prod.PrecioUnitario, 2))</strong>
+                        (@Formato.ConUnidad(_datos.Cantidad, prod.TipoProducto) × @Formato.Pesos(prod.PrecioUnitario))
+                        @if (_datos.Cantidad > Vendible(prod.TipoProducto))
+                        {
+                            <br /><span style="color:var(--arcilla)">⚠ No hay tanto @prod.TipoProducto sin vencer: la API rechazará la venta completa (RN-07).</span>
+                        }
+                    </div>
+                }
+
+                <button type="button" class="boton" disabled="@_ocupado" @onclick="VenderAsync">🛒 Registrar venta</button>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <h2>Para vender hoy</h2>
+            @foreach (var r in _resumen)
+            {
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--linea)">
+                    <span class="insignia insignia-@r.TipoProducto.ToString().ToLowerInvariant()">@r.TipoProducto</span>
+                    <strong>@Formato.ConUnidad(r.CantidadVendible, r.TipoProducto)</strong>
+                </div>
+            }
+            <p class="atenuada" style="font-size:.82rem;margin-top:10px">Solo cuenta lo que no está vencido el @Formato.Fecha(Estado.Dia).</p>
+        </aside>
+    </div>
+
+    <section class="seccion">
+        <h2>Ventas de esta sesión</h2>
+        @if (_hechas.Count == 0)
+        {
+            <div class="panel vacio"><span class="vacio-icono">🧾</span><p>Todavía no has registrado ventas.</p></div>
+        }
+        else
+        {
+            <div class="grilla grilla-2">
+                @foreach (var v in _hechas)
+                {
+                    <article class="panel">
+                        <div class="barra-herramientas" style="margin-bottom:8px">
+                            <h3>Venta #@v.Id</h3>
+                            <span class="insignia insignia-@v.TipoProducto.ToString().ToLowerInvariant()">@v.TipoProducto</span>
+                        </div>
+                        <p class="atenuada">@Formato.Fecha(v.Fecha) · @Formato.ConUnidad(v.Cantidad, v.TipoProducto) × @Formato.Pesos(v.PrecioUnitario)</p>
+                        <p style="font-family:var(--fuente-titulo);font-size:1.5rem;font-weight:700;margin:6px 0 10px">@Formato.Pesos(v.Total)</p>
+                        <table>
+                            <thead><tr><th>Salió del lote</th><th>Producido</th><th class="num">Cantidad</th></tr></thead>
+                            <tbody>
+                                @foreach (var d in v.Detalles)
+                                {
+                                    <tr><td>#@d.LoteId</td><td>@Formato.Fecha(d.FechaProduccion)</td><td class="num">@Formato.ConUnidad(d.Cantidad, v.TipoProducto)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private Granja? _granja;
+    private List<ResumenInventario> _resumen = new();
+    private readonly List<Venta> _hechas = new();
+    private NuevaVenta _datos = new();
+    private ApiException? _error;
+    private bool _ocupado;
+
+    private ParametroProducto? Producto => _granja?.Productos.FirstOrDefault(p => p.TipoProducto == _datos.TipoProducto);
+
+    private decimal Vendible(TipoProducto tipo) =>
+        _resumen.FirstOrDefault(r => r.TipoProducto == tipo)?.CantidadVendible ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.DiaCambiado += AlCambiarDia;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _error = null;
+        try
+        {
+            var granja = Api.ObtenerGranjaAsync();
+            var resumen = Api.ResumenInventarioAsync(Estado.Dia);
+            await Task.WhenAll(granja, resumen);
+            (_granja, _resumen) = (granja.Result, resumen.Result);
+        }
+        catch (ApiException e)
+        {
+            _error = e;
+        }
+    }
+
+    private async Task VenderAsync()
+    {
+        _ocupado = true;
+        try
+        {
+            _datos.Fecha = Estado.Dia;
+            var venta = await Api.RegistrarVentaAsync(_datos);
+            _hechas.Insert(0, venta);
+            var lotes = string.Join(" + ", venta.Detalles.Select(d => $"{Formato.Cantidad(d.Cantidad)} del lote #{d.LoteId}"));
+            Estado.Exito($"Venta #{venta.Id}: {Formato.Pesos(venta.Total)} ({lotes}).");
+            _datos = new NuevaVenta { TipoProducto = _datos.TipoProducto };
+            await CargarAsync();
+        }
+        catch (ApiException e)
+        {
+            Estado.Error(e);
+        }
+        finally
+        {
+            _ocupado = false;
+        }
+    }
+
+    private async void AlCambiarDia()
+    {
+        await CargarAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

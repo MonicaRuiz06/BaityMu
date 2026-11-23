@@ -140,6 +140,33 @@ public sealed class Lote
     public EstadoLote Estado { get; set; }
 }
 
+// ---------------------------------------------------------------- Ventas (HU-13)
+
+public sealed class NuevaVenta
+{
+    public DateOnly? Fecha { get; set; }
+    public TipoProducto TipoProducto { get; set; } = TipoProducto.Queso;
+    public decimal Cantidad { get; set; }
+}
+
+public sealed class Venta
+{
+    public int Id { get; set; }
+    public DateOnly Fecha { get; set; }
+    public TipoProducto TipoProducto { get; set; }
+    public decimal Cantidad { get; set; }
+    public decimal PrecioUnitario { get; set; }
+    public decimal Total { get; set; }
+    public List<DetalleDeVenta> Detalles { get; set; } = new();
+}
+
+public sealed class DetalleDeVenta
+{
+    public int LoteId { get; set; }
+    public DateOnly FechaProduccion { get; set; }
+    public decimal Cantidad { get; set; }
+}
+
 public sealed class ResultadoVencimientos
 {
     public DateOnly Fecha { get; set; }

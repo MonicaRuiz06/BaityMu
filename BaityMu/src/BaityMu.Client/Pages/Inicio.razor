@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @implements IDisposable
 @inject BaityMuApi Api
 @inject EstadoApp Estado
@@ -71,7 +71,10 @@ else
                     </p>
                 }
             }
-            <a class="boton boton-secundario" style="margin-top:14px;width:100%" href="inventario">Ver lotes</a>
+            <div class="acciones" style="margin-top:14px">
+                <a class="boton boton-paja" style="flex:1" href="ventas">🛒 Vender</a>
+                <a class="boton boton-secundario" style="flex:1" href="inventario">Ver lotes</a>
+            </div>
         </section>
     </div>
 

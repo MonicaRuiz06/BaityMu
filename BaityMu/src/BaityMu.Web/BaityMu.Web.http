@@ -68,4 +68,12 @@ Accept: application/json
 GET {{BaityMu.Web_HostAddress}}/api/vacas?incluirRetiradas=true
 Accept: application/json
 
+### HU-03 Consultar una vaca con su historial → 200
+GET {{BaityMu.Web_HostAddress}}/api/vacas/1
+Accept: application/json
+
+### HU-03 Vaca inexistente → 404
+GET {{BaityMu.Web_HostAddress}}/api/vacas/999
+Accept: application/json
+
 ###

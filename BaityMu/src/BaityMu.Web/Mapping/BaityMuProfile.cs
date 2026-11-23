@@ -40,6 +40,15 @@ namespace BaityMu.Web.Mapping
             // solo porque se llama igual en los dos lados.
             CreateMap<VacaConLitros, VacaResponse>()
                 .IncludeMembers(x => x.Vaca);
+
+            // HU-03: la vaca con su historial. LitrosProducidos sale de la propiedad
+            // calculada de VacaDetalle, y Historial se convierte día por día.
+            CreateMap<Vaca, VacaDetalleResponse>()
+                .ForMember(d => d.LitrosProducidos, o => o.Ignore())
+                .ForMember(d => d.Historial, o => o.Ignore());
+            CreateMap<ProduccionLeche, ProduccionVacaResponse>();
+            CreateMap<VacaDetalle, VacaDetalleResponse>()
+                .IncludeMembers(x => x.Vaca);
         }
     }
 }

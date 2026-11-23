@@ -49,6 +49,21 @@ namespace BaityMu.Web.Controllers
             return Ok(_mapper.Map<IReadOnlyList<VacaResponse>>(vacas));
         }
 
+        /// <summary>Consulta una vaca con su producción total y la de cada día (HU-03).</summary>
+        /// <remarks>También encuentra las vacas retiradas, para ver su historial.</remarks>
+        /// <param name="id">Id de la vaca.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">La vaca y su historial.</response>
+        /// <response code="404">No existe una vaca con ese Id.</response>
+        [HttpGet("{id:int}", Name = nameof(Obtener))]
+        [ProducesResponseType<VacaDetalleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+        public async Task<ActionResult<VacaDetalleResponse>> Obtener(int id, CancellationToken ct)
+        {
+            var detalle = await _granjaService.ObtenerVacaAsync(id, ct);
+            return Ok(_mapper.Map<VacaDetalleResponse>(detalle));
+        }
+
         /// <summary>Registra una vaca en la granja (HU-01).</summary>
         /// <remarks>
         /// Si no se envía nombre, la primera vaca se llama **BaityCow**, la segunda
@@ -71,9 +86,8 @@ namespace BaityMu.Web.Controllers
             var vaca = await _granjaService.AgregarVacaAsync(request, ct);
             var respuesta = _mapper.Map<VacaResponse>(vaca);
 
-            // 201 Created con la ruta de la vaca nueva en el encabezado Location.
-            // GET /api/vacas/{id} llega con la HU-02.
-            return Created($"/api/vacas/{respuesta.Id}", respuesta);
+            // 201 Created: el encabezado Location apunta a GET /api/vacas/{id} (HU-03).
+            return CreatedAtRoute(nameof(Obtener), new { id = respuesta.Id }, respuesta);
         }
     }
 }

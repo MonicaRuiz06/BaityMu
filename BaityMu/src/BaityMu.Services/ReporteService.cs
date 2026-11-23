@@ -210,6 +210,50 @@ namespace BaityMu.Services
             }).ToList();
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// Solo aparecen lotes a los que ya se les procesó el vencimiento (HU-11): ahí es
+        /// cuando su existencia pasa a CantidadDanada. Un lote vencido sin procesar todavía
+        /// no cuenta como dañado (se ve en el reporte de producto total como "vencido sin procesar").
+        /// </remarks>
+        public async Task<ReporteProductoDanadoResponse> ProductoDanadoAsync(
+            DateOnly? desde,
+            DateOnly? hasta,
+            TipoProducto? tipoProducto,
+            CancellationToken ct = default)
+        {
+            ValidarRango(desde, hasta);
+
+            var lotes = await _lotes.ListarDanadosAsync(tipoProducto, desde, hasta, ct);
+            var unidades = await UnidadesAsync(ct);
+
+            return new ReporteProductoDanadoResponse
+            {
+                Desde = desde,
+                Hasta = hasta,
+                TipoProducto = tipoProducto,
+                Lotes = lotes.Select(l => new LoteDanadoItem
+                {
+                    LoteId = l.Id,
+                    TipoProducto = l.TipoProducto,
+                    Unidad = unidades.GetValueOrDefault(l.TipoProducto, string.Empty),
+                    FechaProduccion = l.FechaProduccion,
+                    FechaVencimiento = l.FechaVencimiento,
+                    CantidadDañada = l.CantidadDanada,
+                }).ToList(),
+                TotalesPorProducto = lotes
+                    .GroupBy(l => l.TipoProducto)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new TotalDanadoProducto
+                    {
+                        TipoProducto = g.Key,
+                        Unidad = unidades.GetValueOrDefault(g.Key, string.Empty),
+                        NumeroLotes = g.Count(),
+                        Cantidad = g.Sum(l => l.CantidadDanada),
+                    }).ToList(),
+            };
+        }
+
         /// <summary>Suma un grupo de lotes en un renglón del reporte de producto.</summary>
         private static ProductoElaboradoItem Elaborado(
             DateOnly? fecha,

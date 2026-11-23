@@ -1,0 +1,6 @@
+@* Etiqueta de color con el estado de un lote. *@
+<span class="insignia insignia-@Estado.ToString().ToLowerInvariant().Replace("ñ", "n")">@Estado</span>
+
+@code {
+    [Parameter, EditorRequired] public EstadoLote Estado { get; set; }
+}

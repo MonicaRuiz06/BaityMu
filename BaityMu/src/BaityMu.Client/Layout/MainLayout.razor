@@ -1,0 +1,139 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject EstadoApp Estado
+@inject IJSRuntime JS
+
+<div class="app @(_menuAbierto ? "menu-abierto" : "")">
+    <aside class="lateral">
+        <a class="marca" href="" @onclick="CerrarMenu">
+            <img src="img/logo-baitymu.png" alt="" width="56" height="56" />
+            <span>
+                <strong>BaityMu</strong>
+                <small>La granja de Baity</small>
+            </span>
+        </a>
+
+        <nav class="menu" aria-label="Secciones">
+            <NavLink class="menu-item" href="" Match="NavLinkMatch.All" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">🏡</span> Inicio
+            </NavLink>
+
+            <p class="menu-rol">BaityGanadero</p>
+            <NavLink class="menu-item" href="vacas" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">🐄</span> Vacas
+            </NavLink>
+            <NavLink class="menu-item" href="produccion" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">🥛</span> Producción
+            </NavLink>
+
+            <p class="menu-rol">BaityQuesero</p>
+            <NavLink class="menu-item" href="transformacion" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">🧀</span> Transformación
+            </NavLink>
+
+            <p class="menu-rol">BaityBodeguero</p>
+            <NavLink class="menu-item" href="inventario" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">📦</span> Inventario
+            </NavLink>
+
+            <p class="menu-rol">BaityVendedor · BaityGerente</p>
+            <span class="menu-item menu-pronto" title="Llega con la HU-13">
+                <span class="menu-icono" aria-hidden="true">🛒</span> Ventas <em>pronto</em>
+            </span>
+            <span class="menu-item menu-pronto" title="Llega con las HU-15 a HU-20">
+                <span class="menu-icono" aria-hidden="true">📊</span> Reportes <em>pronto</em>
+            </span>
+
+            <p class="menu-rol">BaityAdministrador</p>
+            <NavLink class="menu-item" href="configuracion" @onclick="CerrarMenu">
+                <span class="menu-icono" aria-hidden="true">⚙️</span> Configuración
+            </NavLink>
+        </nav>
+
+        <p class="lateral-pie">Taller final · Lenguajes de Programación · USC</p>
+    </aside>
+
+    <div class="cortina" @onclick="CerrarMenu"></div>
+
+    <div class="contenido">
+        <header class="barra">
+            <button class="boton-menu" type="button" aria-label="Abrir menú" @onclick="AlternarMenu">☰</button>
+
+            <label class="dia-trabajo" title="Fecha que usan por defecto los formularios y consultas">
+                <span>Día de trabajo</span>
+                <input type="date" value="@Estado.Dia.ToString("yyyy-MM-dd")" @onchange="CambiarDia" />
+            </label>
+            <div class="atajos-dia">
+                <button type="button" class="boton-mini" @onclick="() => MoverDia(-1)" aria-label="Día anterior">‹</button>
+                <button type="button" class="boton-mini" @onclick="IrAHoy">Hoy</button>
+                <button type="button" class="boton-mini" @onclick="() => MoverDia(1)" aria-label="Día siguiente">›</button>
+                <button type="button" class="boton-mini boton-escenario" @onclick="IrAlEscenario"
+                        title="Ir al día 1 del escenario de referencia del taller">Escenario · 1 dic</button>
+            </div>
+        </header>
+
+        <main class="pagina">
+            @Body
+        </main>
+    </div>
+
+    <Avisos />
+</div>
+
+@code {
+    private bool _menuAbierto;
+
+    private const string ClaveDia = "baitymu-dia-de-trabajo";
+
+    protected override void OnInitialized() => Estado.DiaCambiado += AlCambiarDia;
+
+    /// <summary>
+    /// Al abrir la app, recupera el día de trabajo guardado en el navegador (localStorage),
+    /// para no volver a "hoy" cada vez que se recarga la página.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool primeraVez)
+    {
+        if (!primeraVez) return;
+        try
+        {
+            var guardado = await JS.InvokeAsync<string?>("localStorage.getItem", ClaveDia);
+            if (DateOnly.TryParse(guardado, System.Globalization.CultureInfo.InvariantCulture, out var dia))
+                Estado.Dia = dia;
+        }
+        catch (JSException)
+        {
+            // Navegador sin localStorage (modo privado estricto): se usa hoy.
+        }
+    }
+
+    private async void AlCambiarDia()
+    {
+        StateHasChanged();
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ClaveDia,
+                Estado.Dia.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private void AlternarMenu() => _menuAbierto = !_menuAbierto;
+
+    private void CerrarMenu() => _menuAbierto = false;
+
+    private void CambiarDia(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var dia))
+            Estado.Dia = dia;
+    }
+
+    private void MoverDia(int dias) => Estado.Dia = Estado.Dia.AddDays(dias);
+
+    private void IrAHoy() => Estado.Dia = DateOnly.FromDateTime(DateTime.Today);
+
+    private void IrAlEscenario() => Estado.Dia = new DateOnly(2026, 12, 1);
+
+    public void Dispose() => Estado.DiaCambiado -= AlCambiarDia;
+}

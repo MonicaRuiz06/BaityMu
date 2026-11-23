@@ -1,0 +1,16 @@
+@* Tarjeta con un número grande y su descripción. *@
+<div class="metrica @(Destacada ? "metrica-destacada" : "")">
+    <span class="metrica-etiqueta">@Etiqueta</span>
+    <strong class="metrica-valor">@Valor</strong>
+    @if (Nota is not null)
+    {
+        <span class="metrica-nota">@Nota</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Etiqueta { get; set; } = "";
+    [Parameter, EditorRequired] public string Valor { get; set; } = "";
+    [Parameter] public string? Nota { get; set; }
+    [Parameter] public bool Destacada { get; set; }
+}

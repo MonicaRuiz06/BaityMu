@@ -1,0 +1,9 @@
+@* Indicador mientras se espera a la API. *@
+<div class="cargando" role="status">
+    <span class="cargando-punto"></span><span class="cargando-punto"></span><span class="cargando-punto"></span>
+    <span>@Texto</span>
+</div>
+
+@code {
+    [Parameter] public string Texto { get; set; } = "Ordeñando datos…";
+}

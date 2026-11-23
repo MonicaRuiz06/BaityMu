@@ -1,0 +1,14 @@
+@* Panel cuando una pantalla no pudo cargar (por ejemplo, la API está apagada). *@
+<div class="panel panel-error" role="alert">
+    <strong>@Error.Titulo</strong>
+    <p>@Error.Detalle</p>
+    @if (Reintentar.HasDelegate)
+    {
+        <button type="button" class="boton boton-secundario" @onclick="Reintentar">Reintentar</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ApiException Error { get; set; } = null!;
+    [Parameter] public EventCallback Reintentar { get; set; }
+}

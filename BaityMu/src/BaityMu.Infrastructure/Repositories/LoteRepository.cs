@@ -28,6 +28,21 @@ namespace BaityMu.Infrastructure.Repositories
 
         /// <inheritdoc />
         /// <remarks>
+        /// Sin AsNoTracking: EF tiene que vigilar estos lotes para guardar el cambio de
+        /// disponible a dañado. Usa el índice por FechaVencimiento.
+        /// </remarks>
+        public async Task<IReadOnlyList<LoteProducto>> ObtenerVencidosConExistenciasAsync(
+            DateOnly fecha,
+            CancellationToken ct = default) =>
+            await Db.LotesProducto
+                .Where(l => l.FechaVencimiento < fecha && l.CantidadDisponible > 0)
+                .OrderBy(l => l.TipoProducto)
+                .ThenBy(l => l.FechaProduccion)
+                .ThenBy(l => l.Id)
+                .ToListAsync(ct);
+
+        /// <inheritdoc />
+        /// <remarks>
         /// Los filtros se van agregando a la consulta solo si vienen: EF arma un único
         /// SELECT con los WHERE que hagan falta. El orden es el mismo del índice FIFO.
         /// </remarks>

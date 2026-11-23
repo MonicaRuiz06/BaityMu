@@ -200,6 +200,7 @@ h1:focus { outline: none; }
 
 /* ------------------------------------------------------------------ Tablas */
 
+tfoot th.num { text-transform: none; } /* que kg no se vuelva KG */
 .tabla-envoltura { overflow-x: auto; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--tarjeta); box-shadow: var(--sombra); }
 table { width: 100%; border-collapse: collapse; font-size: .92rem; }
 th {

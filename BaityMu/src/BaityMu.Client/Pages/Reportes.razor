@@ -42,7 +42,7 @@
         <div class="pestanas" role="tablist" aria-label="Reporte">
             <button type="button" class="@(_vista == Vista.Ventas ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Ventas)">🛒 Ventas</button>
             <button type="button" class="@(_vista == Vista.Leche ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Leche)">🥛 Leche por día</button>
-            <button type="button" disabled title="Llega con la HU-17">🧀 Producto por día</button>
+            <button type="button" class="@(_vista == Vista.Producto ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Producto)">🧀 Producto por día</button>
             <button type="button" disabled title="Llega con la HU-18">⚖️ Balance</button>
             <button type="button" disabled title="Llega con la HU-19">🗑️ Dañado</button>
             <button type="button" disabled title="Llega con la HU-20">🐄 Vacas</button>
@@ -151,11 +151,64 @@
             </div>
         }
     }
+    else if (_vista == Vista.Producto && _producto is not null)
+    {
+        <div class="grilla grilla-3">
+            @foreach (var tipo in new[] { TipoProducto.Queso, TipoProducto.Yogurt })
+            {
+                var t = _producto.TotalesPorProducto.FirstOrDefault(x => x.TipoProducto == tipo);
+                <Metrica Etiqueta="@($"{(tipo == TipoProducto.Queso ? "🧀" : "🥣")} {tipo} elaborado")"
+                         Valor="@Formato.ConUnidad(t?.Cantidad ?? 0, tipo)"
+                         Nota="@($"{Formato.Litros(t?.LitrosUsados ?? 0)} de leche · {TextoLotes(t?.NumeroLotes ?? 0)}")"
+                         Destacada="@(tipo == TipoProducto.Queso)" />
+            }
+            <Metrica Etiqueta="Leche transformada" Valor="@Formato.Litros(_producto.TotalesPorProducto.Sum(t => t.LitrosUsados))"
+                     Nota="@($"{_producto.Dias.Select(d => d.Fecha).Distinct().Count()} días con elaboración")" />
+        </div>
+
+        @if (_producto.Dias.Count == 0)
+        {
+            <SinDatos Icono="🧀" Texto="@($"No se elaboró producto entre el {Formato.Fecha(_desde)} y el {Formato.Fecha(_hasta)}.")" />
+        }
+        else
+        {
+            <div class="tabla-envoltura" style="margin-top:16px">
+                <table>
+                    <thead>
+                        <tr><th>Día</th><th>Producto</th><th class="num">Elaborado</th><th class="num">Leche usada</th><th class="num">Lotes</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _producto.Dias)
+                        {
+                            <tr>
+                                <td>@(d.Fecha is { } f ? Formato.Fecha(f) : "")</td>
+                                <td><span class="insignia insignia-@d.TipoProducto.ToString().ToLowerInvariant()">@d.TipoProducto</span></td>
+                                <td class="num"><strong>@Formato.Cantidad(d.Cantidad) @d.Unidad</strong></td>
+                                <td class="num">@Formato.Litros(d.LitrosUsados)</td>
+                                <td class="num">@d.NumeroLotes</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        @foreach (var t in _producto.TotalesPorProducto)
+                        {
+                            <tr>
+                                <th colspan="2">Total @t.TipoProducto</th>
+                                <th class="num">@Formato.Cantidad(t.Cantidad) @t.Unidad</th>
+                                <th class="num">@Formato.Litros(t.LitrosUsados)</th>
+                                <th class="num">@t.NumeroLotes</th>
+                            </tr>
+                        }
+                    </tfoot>
+                </table>
+            </div>
+        }
+    }
 </section>
 
 @code {
     /// <summary>Los reportes que ya existen en la API. Cada HU agrega el suyo.</summary>
-    private enum Vista { Ventas, Leche }
+    private enum Vista { Ventas, Leche, Producto }
 
     private Vista _vista = Vista.Ventas;
     private DateOnly _desde;
@@ -163,10 +216,13 @@
     private TipoProducto? _tipo;
     private ReporteVentas? _ventas;
     private ReporteLecheDiaria? _leche;
+    private ReporteProductoDiario? _producto;
     private ApiException? _error;
     private bool _cargando;
 
     private static string TextoVentas(int n) => n == 1 ? "1 venta" : $"{n} ventas";
+
+    private static string TextoLotes(int n) => n == 1 ? "1 lote" : $"{n} lotes";
 
     private static string Porcentaje(decimal parte, decimal total) =>
         total == 0 ? "0%" : (parte / total * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
@@ -224,6 +280,9 @@
                     break;
                 case Vista.Leche:
                     _leche = await Api.ReporteLecheDiariaAsync(_desde, _hasta);
+                    break;
+                case Vista.Producto:
+                    _producto = await Api.ReporteProductoDiarioAsync(_desde, _hasta);
                     break;
             }
         }

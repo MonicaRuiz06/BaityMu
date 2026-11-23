@@ -1,16 +1,20 @@
 ﻿using AutoMapper;
+using BaityMu.Domain.Enums;
 using BaityMu.Services.Dtos;
 using BaityMu.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BaityMu.Web.Controllers
 {
-    /// <summary>Ventas de queso y yogurt (Épica 5). Rol: BaityVendedor.</summary>
+    /// <summary>Ventas de queso y yogurt: registrar y consultar (Épica 5). Rol: BaityVendedor.</summary>
     [ApiController]
     [Route("api/ventas")]
     [Produces("application/json")]
     public sealed class VentasController : ControllerBase
     {
+        /// <summary>Nombre de la ruta GET de una venta, para el encabezado Location.</summary>
+        private const string RutaVenta = "ObtenerVenta";
+
         private readonly IVentaService _ventaService;
         private readonly IMapper _mapper;
 
@@ -43,9 +47,45 @@ namespace BaityMu.Web.Controllers
         public async Task<ActionResult<VentaResponse>> Registrar(VentaRequest request, CancellationToken ct)
         {
             var venta = await _ventaService.RegistrarVentaAsync(request, ct);
+            var respuesta = _mapper.Map<VentaResponse>(venta);
 
-            // 201 sin encabezado Location: GET /api/ventas/{id} llega con la HU-14.
-            return StatusCode(StatusCodes.Status201Created, _mapper.Map<VentaResponse>(venta));
+            // 201 Created: Location apunta a GET /api/ventas/{id} (HU-14).
+            return CreatedAtRoute(RutaVenta, new { id = respuesta.Id }, respuesta);
+        }
+
+        /// <summary>Consulta una venta con los lotes de donde salió (HU-14).</summary>
+        /// <param name="id">Id de la venta.</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">La venta y sus detalles.</response>
+        /// <response code="404">No existe una venta con ese Id.</response>
+        [HttpGet("{id:int}", Name = RutaVenta)]
+        [ProducesResponseType<VentaResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+        public async Task<ActionResult<VentaResponse>> Obtener(int id, CancellationToken ct)
+        {
+            var venta = await _ventaService.ObtenerAsync(id, ct);
+            return Ok(_mapper.Map<VentaResponse>(venta));
+        }
+
+        /// <summary>Lista las ventas con sus detalles (HU-14).</summary>
+        /// <remarks>Ordenadas de la más antigua a la más reciente. Todos los filtros son opcionales.</remarks>
+        /// <param name="desde">Fecha mínima (yyyy-MM-dd).</param>
+        /// <param name="hasta">Fecha máxima (yyyy-MM-dd).</param>
+        /// <param name="tipo">Solo "Queso" o solo "Yogurt".</param>
+        /// <param name="ct">Se cancela si el cliente cierra la conexión.</param>
+        /// <response code="200">Las ventas (puede estar vacío).</response>
+        /// <response code="400">'desde' es posterior a 'hasta', o un filtro no es válido.</response>
+        [HttpGet]
+        [ProducesResponseType<IReadOnlyList<VentaResponse>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+        public async Task<ActionResult<IReadOnlyList<VentaResponse>>> Listar(
+            [FromQuery] DateOnly? desde,
+            [FromQuery] DateOnly? hasta,
+            [FromQuery] TipoProducto? tipo,
+            CancellationToken ct)
+        {
+            var ventas = await _ventaService.ListarAsync(desde, hasta, tipo, ct);
+            return Ok(_mapper.Map<IReadOnlyList<VentaResponse>>(ventas));
         }
     }
 }

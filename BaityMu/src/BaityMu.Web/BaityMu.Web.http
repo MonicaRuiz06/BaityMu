@@ -313,4 +313,16 @@ Content-Type: application/json
   "cantidad": 0
 }
 
+### HU-14 Consultar la venta 1 con sus lotes → 200
+GET {{BaityMu.Web_HostAddress}}/api/ventas/1
+Accept: application/json
+
+### HU-14 Venta inexistente → 404
+GET {{BaityMu.Web_HostAddress}}/api/ventas/999
+Accept: application/json
+
+### HU-14 Ventas de queso del 1 al 31 de diciembre → 200
+GET {{BaityMu.Web_HostAddress}}/api/ventas?desde=2026-12-01&hasta=2026-12-31&tipo=Queso
+Accept: application/json
+
 ###

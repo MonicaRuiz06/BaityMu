@@ -57,6 +57,10 @@
             <button type="button" class="@(_vista == Vista.Danado ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Danado)">🗑️ Dañado</button>
             <button type="button" class="@(_vista == Vista.Vacas ? "activa" : "")" @onclick="() => CambiarVistaAsync(Vista.Vacas)">🐄 Vacas</button>
         </div>
+        @if (_error is null && !_cargando)
+        {
+            <a class="boton-mini" href="@UrlCsv" download title="Abre en Excel (separador ; y coma decimal)">⬇ Descargar CSV</a>
+        }
     </div>
 
     @if (_error is not null)
@@ -415,6 +419,17 @@
     private List<ProductoTotal>? _balance;
     private ReporteProductoDanado? _danado;
     private ReporteVacas? _vacas;
+
+    /// <summary>Enlace de descarga del reporte abierto, con los mismos filtros de la pantalla (HU-21).</summary>
+    private string UrlCsv => _vista switch
+    {
+        Vista.Ventas => Api.UrlReporteCsv("ventas", _desde, _hasta, _tipo),
+        Vista.Leche => Api.UrlReporteCsv("leche-diaria", _desde, _hasta),
+        Vista.Producto => Api.UrlReporteCsv("producto-diario", _desde, _hasta),
+        Vista.Balance => Api.UrlReporteCsv("producto-total", fecha: Estado.Dia),
+        Vista.Danado => Api.UrlReporteCsv("producto-danado", _desde, _hasta, _tipo),
+        _ => Api.UrlReporteCsv("vacas", _desde, _hasta),
+    };
 
     /// <summary>El mayor promedio: es el 100 % de las barras de la tabla de vacas.</summary>
     private decimal MaximoVaca => _vacas?.VacaMayor?.PromedioDiario ?? 0;

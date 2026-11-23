@@ -136,6 +136,22 @@ public sealed class BaityMuApi(HttpClient http)
     public Task<ReporteVacas> ReporteVacasAsync(DateOnly desde, DateOnly hasta) =>
         GetAsync<ReporteVacas>($"api/reportes/vacas?desde={F(desde)}&hasta={F(hasta)}");
 
+    /// <summary>
+    /// Dirección completa para descargar un reporte en CSV (HU-21). Se usa en un enlace:
+    /// la API responde con Content-Disposition: attachment y el navegador lo descarga.
+    /// </summary>
+    /// <param name="reporte">Ruta del reporte: "ventas", "leche-diaria", "producto-total", etc.</param>
+    public string UrlReporteCsv(string reporte, DateOnly? desde = null, DateOnly? hasta = null,
+        TipoProducto? tipo = null, DateOnly? fecha = null)
+    {
+        var filtros = new List<string> { "formato=csv" };
+        if (desde is { } d) filtros.Add($"desde={F(d)}");
+        if (hasta is { } h) filtros.Add($"hasta={F(h)}");
+        if (tipo is not null) filtros.Add($"tipo={tipo}");
+        if (fecha is { } f) filtros.Add($"fecha={F(f)}");
+        return new Uri(http.BaseAddress!, $"api/reportes/{reporte}?{string.Join('&', filtros)}").ToString();
+    }
+
     // ------------------------------------------------------------------ Plomería
 
     private async Task<T> GetAsync<T>(string url)

@@ -28,5 +28,8 @@ namespace BaityMu.Services.Dtos
 
         /// <summary>Cantidad que se perdió por vencimiento.</summary>
         public decimal CantidadDanada { get; set; }
+
+        /// <summary>Disponible, Agotado, Vencido o Dañado, según la fecha de la consulta.</summary>
+        public EstadoLote Estado { get; set; }
     }
 }

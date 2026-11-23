@@ -28,6 +28,18 @@ namespace BaityMu.Infrastructure.Repositories
                 .ToDictionaryAsync(x => x.VacaId, x => x.Litros, ct);
 
         /// <inheritdoc />
+        public async Task<IReadOnlySet<int>> VacasConProduccionAsync(DateOnly fecha, CancellationToken ct = default) =>
+            (await Db.ProduccionesLeche
+                .Where(p => p.Fecha == fecha)
+                .Select(p => p.VacaId)
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        /// <inheritdoc />
+        public Task AgregarVariosAsync(IEnumerable<ProduccionLeche> producciones, CancellationToken ct = default) =>
+            Db.ProduccionesLeche.AddRangeAsync(producciones, ct);
+
+        /// <inheritdoc />
         /// <remarks>
         /// AsNoTracking: estos datos solo se leen para mostrarlos, así que EF no necesita
         /// vigilar sus cambios. La consulta es más liviana.

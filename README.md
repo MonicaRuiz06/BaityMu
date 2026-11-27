@@ -9,9 +9,10 @@ Docente: Camilo Ernesto Charry Caicedo · Estudiante: Monica Alexandra Ruiz Mart
 
 ## Estado
 
-**Épicas 0 a 3 terminadas** (HU-01 a HU-10): granja y vacas, producción diaria, transformación en lotes e inventario, con 93 pruebas NUnit en verde.
-- Lo siguiente es la HU-11 (procesar vencimientos) y la venta FIFO (HU-13).
-- El front cubre todo lo que ya existe en la API; ventas y reportes se agregan cuando estén sus historias.
+**Proyecto terminado.** Las 7 épicas y las 21 historias de usuario (HU-01 a HU-21) están hechas, con **151 pruebas NUnit en verde**.
+- Cubre las 7 pruebas mínimas del taller y el escenario de referencia completo (días 1 a 17).
+- Incluye dos extensiones opcionales: alerta de lotes próximos a vencer (HU-12) y exportación de reportes a CSV (HU-21).
+- El front cubre todas las operaciones y los seis reportes.
 
 El trabajo se organiza en el GitHub Project **[BaityMu](https://github.com/users/MonicaRuiz06/projects/1)**, con 7 épicas y 21 historias de usuario como [issues](https://github.com/MonicaRuiz06/BaityMu/issues).
 
@@ -109,7 +110,9 @@ La dirección de la API que usa el front está en `src/BaityMu.Client/wwwroot/ap
 | Vacas | BaityGanadero | Listar (activas o todas), registrar y retirar vacas; ficha con su historial |
 | Producción | BaityGanadero | Registrar el ordeño (n × l o litros por vaca) y ver lo transformado y lo disponible |
 | Transformación | BaityQuesero | Convertir leche en queso o yogurt, con vista previa de la cantidad y el vencimiento |
-| Inventario | BaityBodeguero | Resumen por producto y lotes en orden FIFO con su estado |
+| Inventario | BaityBodeguero | Resumen por producto, lotes en orden FIFO con su estado, aviso de los que vencen en 3 días y procesar vencimientos |
+| Ventas | BaityVendedor | Vender en orden FIFO con vista previa del total, y ver las ventas del día con el lote de donde salió cada parte |
+| Reportes | BaityGerente | Los seis reportes en pestañas (ventas, leche por día, producto por día, balance, dañado y vacas), con filtros y descarga en CSV |
 | Configuración | BaityAdministrador | Cambiar l y el rendimiento, la vida útil y el precio de cada producto |
 
 Arriba está el **día de trabajo**: la fecha que usan los formularios y las consultas. Con el botón **"Escenario · 1 dic"** se salta al día 1 del escenario de referencia, y moviendo el día (por ejemplo al 17 de diciembre) se ve cómo los lotes pasan a *Vencido*. El navegador recuerda el día elegido.
@@ -155,7 +158,7 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 
 ### Colección de peticiones (`.http`)
 
-`src/BaityMu.Web/BaityMu.Web.http` tiene las peticiones listas para enviar desde Visual Studio, con la API en ejecución. Cada historia agrega las suyas. Al final quedará el escenario de referencia del taller (días 1 a 17).
+`src/BaityMu.Web/BaityMu.Web.http` tiene las peticiones listas para enviar desde Visual Studio, con la API en ejecución. Incluye el escenario de referencia del taller (días 1 a 17) y los casos de error de cada endpoint.
 
 ### Endpoints disponibles
 
@@ -185,11 +188,9 @@ Las pruebas no necesitan SQL Server. Usan una base EF Core **InMemory** nueva en
 | GET | `/api/reportes/producto-total?fecha=` | Balance de cada producto: producido, vendido, disponible y dañado (HU-18) · 200 |
 | GET | `/api/reportes/producto-danado?desde=&hasta=&tipo=` | Lotes dañados por vencimiento (rango por fecha de vencimiento) y total por producto (HU-19) · 200, 400 |
 | GET | `/api/reportes/vacas?desde=&hasta=` | Promedio del hato, vaca que más y que menos produce, y las que están por debajo del promedio (HU-20) · 200, 400 |
-
-Todos los reportes aceptan `&formato=csv` para descargar un archivo `.csv` que Excel en español abre directamente: separador `;`, coma decimal y UTF-8 (HU-21).
 | GET | `/api/diagnostico/errores/{codigo}` | **Solo en desarrollo.** Lanza un error de ejemplo (400, 404, 409 o 500) para ver la respuesta ProblemDetails |
 
-Los endpoints del negocio (`/api/granja`, `/api/vacas`, `/api/produccion`, `/api/ventas`, `/api/reportes/...`) se agregan con cada historia de usuario.
+Todos los reportes aceptan `&formato=csv` para descargar un archivo `.csv` que Excel en español abre directamente: separador `;`, coma decimal y UTF-8 (HU-21).
 
 ### Errores
 
@@ -210,4 +211,6 @@ Todos los errores responden en formato **ProblemDetails** (`application/problem+
 | [Base de datos](docs/BaseDeDatos.md) | Modelo entidad-relación en SQL Server, tablas, restricciones, índices y decisiones de diseño |
 | [Preparación del entorno](docs/PreparacionEntorno.md) | Herramientas, versiones y paquetes instalados |
 | [Convención de commits](docs/ConvencionCommits.md) | Conventional Commits: tipos, alcances y cómo enlazar los issues |
-| [Documentación en PDF](docs/BaityMu-Documentacion.pdf) | Análisis y diseño en un solo documento para entregar |
+| [Implementación](docs/Implementacion.md) | Arquitectura final, decisiones de diseño, endpoints, pruebas, resultados del escenario, extensiones y el front |
+| [Documentación en PDF](docs/BaityMu-Documentacion.pdf) | Todo lo anterior en un solo documento para entregar (análisis, diseño e implementación) |
+| [Taller diligenciado](docs/Taller-BaityMu-Diligenciado.pdf) | El enunciado del taller con sus tablas llenas para este proyecto |
